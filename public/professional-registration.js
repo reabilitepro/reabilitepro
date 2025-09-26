@@ -6,7 +6,7 @@ document.getElementById('professional-registration-form').addEventListener('subm
     const data = Object.fromEntries(formData.entries());
 
     try {
-        const response = await fetch('/api/register-professional', {
+        const response = await fetch('/api/professionals', { // Rota corrigida
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
