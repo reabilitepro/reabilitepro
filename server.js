@@ -89,34 +89,58 @@ app.post('/api/patient/login', async (req, res) => {
     }
 });
 
-// --- ROTA DE CADASTRO DE PROFISSIONAL ---
+// --- ROTA DE CADASTRO DE PROFISSIONAL (COM LOGS DETALHADOS) ---
 app.post('/api/professionals', async (req, res) => {
+    console.log('LOG: Rota /api/professionals alcançada.');
     const { name, email, password, dob, phone, profession, registrationNumber } = req.body;
+    console.log('LOG: Dados recebidos para cadastro:', { name, email, profession }); 
+
     if (!name || !email || !password || !profession || !registrationNumber) {
+        console.error('ERRO: Campos obrigatórios ausentes no cadastro.');
         return res.status(400).json({ message: 'Campos obrigatórios ausentes.' });
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
+    
     let client;
     try {
+        console.log('LOG: Gerando hash da senha...');
+        const hashedPassword = await bcrypt.hash(password, 10);
+        console.log('LOG: Hash da senha gerado.');
+
+        console.log('LOG: Tentando conectar ao pool do banco de dados...');
         client = await pool.connect();
+        console.log('LOG: Conexão com o banco de dados estabelecida com sucesso.');
+
+        console.log('LOG: Verificando se o e-mail já existe...');
         const check = await client.query('SELECT id FROM professionals WHERE email = $1', [email]);
         if (check.rows.length > 0) {
+            console.warn('AVISO: Tentativa de cadastro com e-mail já existente:', email);
+            client.release(); // Liberar conexão antes de retornar
             return res.status(409).json({ message: 'Este email já está cadastrado.' });
         }
+        console.log('LOG: E-mail verificado, não existe.');
+
+        console.log('LOG: Preparando e executando a query de inserção...');
         const query = 'INSERT INTO professionals (name, email, password, dob, phone, profession, registrationNumber, registrationStatus) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id';
         await client.query(query, [name, email, hashedPassword, dob, phone, profession, registrationNumber, 'Pendente']);
+        console.log('LOG: Profissional inserido no banco de dados com sucesso.');
+
         res.status(201).json({ message: 'Cadastro realizado com sucesso! Aguardando aprovação do administrador.' });
+        console.log('LOG: Resposta de sucesso (201) enviada ao cliente.');
+
     } catch (error) {
-        console.error('Erro no cadastro:', error);
+        console.error('ERRO FATAL DURANTE O CADASTRO DE PROFISSIONAL:', error);
         return res.status(500).json({ message: 'Erro interno do servidor ao tentar cadastrar.' });
     } finally {
-        if(client) client.release();
+        if (client) {
+            client.release();
+            console.log('LOG: Conexão com o banco de dados liberada.');
+        }
     }
 });
 
+
 // --- ROTA DE CADASTRO DE PACIENTE ---
 app.post('/api/patients', async (req, res) => {
-    // A lógica de convite por token será implementada depois.
     const { name, email, password, dob, phone } = req.body;
     if (!name || !email || !password) {
         return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' });
