@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anamnese - Reabilite Pro</title>
+    <link rel="icon" href="https://i.imgur.com/LN825NZ.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <img src="/logo.png" alt="Reabilite Pro Logo" class="logo">
+        <h1>Reabilite Pro</h1>
+    </header>
+    <main>
+        <div class="anamnesis-container">
+            <h2>Ficha de Anamnese</h2>
+            <p>Para que seu profissional possa te ajudar da melhor forma, por favor, preencha os campos abaixo com atenção.</p>
+            
+            <form id="anamnesis-form">
+                
+                <!-- Seção de Saúde Geral (Para todos) -->
+                <fieldset>
+                    <legend>Informações Gerais de Saúde</legend>
+                    <div class="form-group">
+                        <label for="allergies">Você possui alguma alergia? Se sim, qual?</label>
+                        <input type="text" id="allergies" name="allergies" placeholder="Ex: Alergia a dipirona, frutos do mar...">
+                    </div>
+                    <div class="form-group">
+                        <label for="previous_surgeries">Já realizou alguma cirurgia? Se sim, qual e quando?</label>
+                        <input type="text" id="previous_surgeries" name="previous_surgeries" placeholder="Ex: Apendicite em 2015...">
+                    </div>
+                    <div class="form-group">
+                        <label for="current_medications">Você faz uso contínuo de algum medicamento? Se sim, qual?</label>
+                        <input type="text" id="current_medications" name="current_medications" placeholder="Ex: Losartana 50mg, Anticoncepcional...">
+                    </div>
+                    <div class="form-group">
+                        <label for="lifestyle_habits">Descreva brevemente seus hábitos (alimentação, sono, fumo, álcool, atividade física).</label>
+                        <textarea id="lifestyle_habits" name="lifestyle_habits" rows="4"></textarea>
+                    </div>
+                </fieldset>
+
+                <!-- Seção Específica de Condicionamento Físico -->
+                <fieldset id="physical_fitness_section" class="specialty-section" style="display: none;">
+                    <legend>Foco: Condicionamento Físico</legend>
+                    <div class="form-group">
+                        <label for="fitness_goal">Qual seu principal objetivo com os treinos?</label>
+                        <input type="text" id="fitness_goal" name="fitness_goal" placeholder="Ex: Emagrecimento, hipertrofia, performance esportiva...">
+                    </div>
+                    <div class="form-group">
+                        <label for="injury_history">Você possui alguma lesão ou dor crônica que devamos saber?</label>
+                        <textarea id="injury_history" name="injury_history" rows="3" placeholder="Ex: Dor no joelho direito ao correr, hérnia de disco lombar..."></textarea>
+                    </div>
+                </fieldset>
+
+                <!-- Seção Específica de Nutrição -->
+                <fieldset id="nutrition_section" class="specialty-section" style="display: none;">
+                    <legend>Foco: Nutrição e Alimentação</legend>
+                    <div class="form-group">
+                        <label for="nutrition_goal">Qual seu principal objetivo com a alimentação?</label>
+                        <input type="text" id="nutrition_goal" name="nutrition_goal" placeholder="Ex: Perder peso, melhorar digestão, reeducação alimentar...">
+                    </div>
+                    <div class="form-group">
+                        <label for="dietary_restrictions">Você possui alguma restrição ou preferência alimentar?</label>
+                        <textarea id="dietary_restrictions" name="dietary_restrictions" rows="3" placeholder="Ex: Intolerância à lactose, veganismo, não gosto de brócolis..."></textarea>
+                    </div>
+                </fieldset>
+
+                <!-- Seção Específica de Saúde Mental -->
+                <fieldset id="mental_health_section" class="specialty-section" style="display: none;">
+                    <legend>Foco: Saúde Mental</legend>
+                    <div class="form-group">
+                        <label for="main_complaint_psychology">Qual a queixa ou motivo principal que te traz à terapia?</label>
+                        <textarea id="main_complaint_psychology" name="main_complaint_psychology" rows="4" placeholder="Ex: Sentimentos de ansiedade, dificuldades no relacionamento, busca por autoconhecimento..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="previous_therapy">Você já fez terapia anteriormente?</label>
+                        <input type="text" id="previous_therapy" name="previous_therapy" placeholder="Ex: Sim, por 2 anos com abordagem psicanalítica.">
+                    </div>
+                </fieldset>
+                
+                <button type="submit" class="button-primary">Enviar Anamnese e Acessar a Plataforma</button>
+            </form>
+            <p id="error-message" class="error-message" style="display: none;"></p>
+        </div>
+    </main>
+    <script src="anamnesis.js"></script>
+</body>
+</html>

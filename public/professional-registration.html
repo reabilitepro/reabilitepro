@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Profissional - Reabilite Pro</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <img src="/logo.png" alt="Reabilite Pro Logo" class="logo">
+        <h1>Cadastro de Profissional</h1>
+    </header>
+    <main>
+        <form id="professional-registration-form" class="form-container">
+            <div class="form-group">
+                <label for="name">Nome Completo</label>
+                <input type="text" id="name" name="fullName" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <label for="profession">Profissão</label>
+                <input type="text" id="profession" name="profession" required>
+            </div>
+            <div class="form-group">
+                <label for="registrationNumber">Número de Registro (Ex: Crefito)</label>
+                <input type="text" id="registrationNumber" name="registrationNumber" required>
+            </div>
+            <button type="submit" class="button-primary">Cadastrar</button>
+        </form>
+    </main>
+    <script src="/professional-registration.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#007bff"/>
+    <link rel="manifest" href="/manifest.json">
+    <title>Login do Paciente - Reabilite Pro</title>
+    <link rel="icon" href="https://i.imgur.com/LN825NZ.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <img src="/logo.png" alt="Reabilite Pro Logo" class="logo">
+        <h1>Reabilite Pro</h1>
+    </header>
+    <main>
+        <div class="login-container">
+            <h2>Acesso do Paciente</h2>
+            <p>Use o email e a senha que você criou para entrar.</p>
+            <form id="patient-login-form">
+                <label for="email-user">Email:</label>
+                <div class="input-group">
+                    <input type="text" id="email-user" name="email-user" placeholder="seu-usuario" required>
+                    <span>@reabilite.pro</span>
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="button-primary">Entrar</button>
+            </form>
+            <p id="error-message" class="error-message" style="display: none;"></p>
+        </div>
+        <div class="home-link-container">
+            <a href="/">Voltar à página inicial</a>
+        </div>
+    </main>
+    <script src="patient-login.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+</body>
+</html>

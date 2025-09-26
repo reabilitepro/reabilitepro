@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#007bff"/>
+    <link rel="manifest" href="/manifest.json">
+    <title>Painel do Paciente - Reabilite Pro</title>
+    <link rel="icon" href="https://i.imgur.com/LN825NZ.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <img src="/logo.png" alt="Reabilite Pro Logo" class="logo">
+        <div class="header-content">
+            <h1>Reabilite Pro</h1>
+            <button id="logout-button" class="button-logout">Sair</button>
+        </div>
+    </header>
+
+    <main>
+        <h2 id="welcome-message">Carregando...</h2>
+        
+        <div class="dashboard-section">
+            <h3>Minhas Informações</h3>
+            <div id="patient-info" class="info-card">
+                <p><strong>Nome:</strong> <span id="patient-name"></span></p>
+                <p><strong>Email:</strong> <span id="patient-email"></span></p>
+                <p><strong>Telefone:</strong> <span id="patient-phone"></span></p>
+                <p><strong>Data de Nascimento:</strong> <span id="patient-dob"></span></p>
+                <p><strong>Endereço:</strong> <span id="patient-address"></span></p>
+                <p><strong>Observações:</strong> <span id="patient-notes"></span></p>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h3>Minha Evolução e Plano de Tratamento</h3>
+            <div id="evolution-notes-container" class="evolution-container">
+                <!-- As notas de evolução serão inseridas aqui pelo JavaScript -->
+            </div>
+        </div>
+    </main>
+
+    <script src="patient-dashboard.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+</body>
+</html>

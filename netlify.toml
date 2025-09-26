@@ -1,0 +1,3 @@
+
+[functions."*"] # Aplica a todas as funções
+  timeout = 25

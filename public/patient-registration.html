@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#007bff"/>
+    <link rel="manifest" href="/manifest.json">
+    <title>Cadastro de Paciente - Reabilite Pro</title>
+    <link rel="icon" href="https://i.imgur.com/LN825NZ.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <img src="/logo.png" alt="Reabilite Pro Logo" class="logo">
+        <h1>Reabilite Pro</h1>
+    </header>
+    <main>
+        <div class="registration-container">
+            <h2>Finalize seu Cadastro</h2>
+            <p>Preencha os campos abaixo para criar sua conta e acessar a plataforma.</p>
+            <form id="patient-registration-form">
+                <div class="form-group">
+                    <label for="name">Nome Completo</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="dob">Data de Nascimento</label>
+                    <input type="date" id="dob" name="dob" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Telefone</label>
+                    <input type="tel" id="phone" name="phone" required placeholder="(XX) XXXXX-XXXX">
+                </div>
+
+                <!-- Novo Campo Adicionado -->
+                <div class="form-group">
+                    <label for="focus-area">Foco do Atendimento</label>
+                    <select id="focus-area" name="focus-area" required>
+                        <option value="" disabled selected>Selecione uma área...</option>
+                        <option value="mental_health">Saúde Mental (Psicologia)</option>
+                        <option value="nutrition">Nutrição e Alimentação</option>
+                        <option value="physical_fitness">Condicionamento Físico</option>
+                    </select>
+                </div>
+                
+                <hr>
+
+                <h4>Crie suas credenciais de acesso</h4>
+
+                <div class="form-group">
+                    <label for="email-user">Email de Acesso</label>
+                    <div class="input-group">
+                        <input type="text" id="email-user" name="email-user" placeholder="seu-usuario" required>
+                        <span>@reabilite.pro</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Crie sua Senha</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm-password">Confirme sua Senha</label>
+                    <input type="password" id="confirm-password" name="confirm-password" required>
+                </div>
+
+                <button type="submit" class="button-primary">Finalizar Cadastro</button>
+            </form>
+            <p id="error-message" class="error-message" style="display: none;"></p>
+        </div>
+    </main>
+    <script src="patient-registration.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+</body>
+</html>

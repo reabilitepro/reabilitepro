@@ -1,0 +1,16 @@
+{
+  "name": "reabilite-pro",
+  "version": "1.0.0",
+  "description": "Plataforma de saúde integrativa",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3"
+  }
+}

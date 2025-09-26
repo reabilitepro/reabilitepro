@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#007bff"/>
+    <link rel="manifest" href="/manifest.json">
+    <title>Detalhes do Paciente - Reabilite Pro</title>
+    <link rel="icon" href="https://i.imgur.com/LN825NZ.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <img src="/logo.png" alt="Reabilite Pro Logo" class="logo">
+        <div class="header-content">
+            <h1>Reabilite Pro</h1>
+            <a href="#" onclick="history.back(); return false;" class="button-secondary">Voltar</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="patient-details-container">
+            <h2 id="patient-name-title">Carregando...</h2>
+            
+            <div class="detail-section">
+                <h3>Informações Pessoais</h3>
+                <p><strong>Data de Nascimento:</strong> <span id="dob"></span></p>
+                <p><strong>Telefone:</strong> <span id="phone"></span></p>
+                <p><strong>Foco do Atendimento:</strong> <span id="focus_area"></span></p>
+            </div>
+
+            <!-- Seções de Anamnese Preenchidas pelo Paciente -->
+            <div class="detail-section">
+                <h3>Dados da Anamnese</h3>
+                <p><strong>Alergias:</strong> <span id="allergies" class="detail-box"></span></p>
+                <p><strong>Cirurgias Prévias:</strong> <span id="previous_surgeries" class="detail-box"></span></p>
+                <p><strong>Medicamentos em Uso:</strong> <span id="current_medications" class="detail-box"></span></p>
+                <p><strong>Hábitos de Vida:</strong> <span id="lifestyle_habits" class="detail-box"></span></p>
+                <!-- Campos específicos que serão preenchidos pelo JS -->
+                <div id="specific-anamnesis-details"></div>
+            </div>
+
+            <!-- NOVA SEÇÃO DO PROGRAMA -->
+            <div class="detail-section program-section">
+                <h3>Programa do Paciente</h3>
+                <form id="program-form">
+                    <div class="form-group">
+                        <label for="patient-program">Descreva o plano de tratamento, treino ou acompanhamento para o paciente. Esta informação ficará visível para ele.</label>
+                        <textarea id="patient-program" name="patient-program" rows="10" placeholder="Ex: Fase 1 - Fortalecimento do core. 3 séries de 15 repetições de prancha abdominal..."></textarea>
+                    </div>
+                    <button type="submit" class="button-primary">Salvar Programa</button>
+                </form>
+            </div>
+
+            <div class="detail-section evolution-section">
+                <h3>Evolução do Paciente (Notas Internas)</h3>
+                <div id="evolution-history"></div>
+                <form id="evolution-form">
+                    <div class="form-group">
+                        <label for="evolution-note">Nova Nota de Evolução</label>
+                        <textarea id="evolution-note" name="evolution-note" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="button-primary">Salvar Evolução</button>
+                </form>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="patient-details.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+</body>
+</html>

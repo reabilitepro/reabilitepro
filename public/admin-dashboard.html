@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Administrador - Reabilite Pro</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <img src="/logo.png" alt="Reabilite Pro Logo" class="logo">
+        <div class="header-content">
+            <h1>Painel do Administrador</h1>
+            <button id="logout-button" class="button-secondary">Sair</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="admin-container">
+            <div class="admin-section">
+                <h2>Gerenciar Profissionais</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Profissão</th>
+                                <th>Registro</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="professionals-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h2>Gerenciar Pacientes</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Telefone</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patients-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/admin-dashboard.js"></script>
+</body>
+</html>
