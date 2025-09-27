@@ -1,95 +1,154 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const professionalsTableBody = document.getElementById('professionals-table-body');
-    const patientsTableBody = document.getElementById('patients-table-body');
-    const logoutButton = document.getElementById('logout-button');
+    const loginContainer = document.getElementById('login-container');
+    const adminDashboard = document.getElementById('admin-dashboard');
+    const adminLoginForm = document.getElementById('admin-login-form');
+    const professionalsTbody = document.getElementById('professionals-table-body');
 
-    // CORREÇÃO: Usar 'accessToken' e redirecionar para a página de login correta.
-    logoutButton.addEventListener('click', () => {
-        localStorage.removeItem('accessToken');
-        window.location.href = '/professional-login.html';
-    });
-
-    // CORREÇÃO: Buscar o token pelo nome correto ('accessToken').
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-        // CORREÇÃO: Redirecionar para a página de login correta.
-        window.location.href = '/professional-login.html';
-        return; // Parar a execução do script se não houver token.
+    const adminToken = localStorage.getItem('adminToken');
+    if (adminToken) {
+        // Se houver token, assumimos que o usuário está logado.
+        // Ocultamos o login e exibimos o painel.
+        if(loginContainer) loginContainer.style.display = 'none';
+        if(adminDashboard) adminDashboard.style.display = 'block';
+        loadProfessionals();
+    } else {
+        // Se não houver token, garantimos que o painel de admin não seja mostrado
+        // e que o formulário de login (se existir na página) seja visível.
+        if(adminDashboard) adminDashboard.style.display = 'none';
     }
 
-    const fetchProfessionals = async () => {
+    if(adminLoginForm) {
+        adminLoginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.userType === 'admin') {
+                        localStorage.setItem('adminToken', data.accessToken);
+                        // Redireciona para a página do painel após o login bem-sucedido
+                        window.location.href = '/admin-dashboard.html';
+                    } else {
+                        alert('Este usuário não é um administrador.');
+                    }
+                } else {
+                    alert('Credenciais de administrador inválidas.');
+                }
+            } catch (error) {
+                console.error('Erro no login de administrador:', error);
+                alert('Ocorreu um erro ao tentar fazer login.');
+            }
+        });
+    }
+
+    async function loadProfessionals() {
+        const token = localStorage.getItem('adminToken');
+        // Se não houver token, não faz nada. A verificação já acontece no início.
+        if (!token) return;
+        // Se a tabela de profissionais não existir na página, não continue.
+        if (!professionalsTbody) return; 
+
         try {
-            const response = await fetch('/api/admin-professionals', { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!response.ok) throw new Error('Falha ao buscar profissionais.');
+            const timestamp = new Date().getTime(); // Cache-busting
+            const response = await fetch(`/api/admin/professionals?_t=${timestamp}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                if(response.status === 401 || response.status === 403) {
+                    localStorage.removeItem('adminToken');
+                    // Redireciona para a página de login se o token for inválido
+                    window.location.href = '/admin.html'; 
+                }
+                throw new Error('Não foi possível carregar os profissionais.');
+            }
+
             const professionals = await response.json();
-            renderProfessionals(professionals);
-        } catch (error) {
-            console.error(error);
-        }
-    };
+            populateProfessionalsTable(professionals);
 
-    const fetchPatients = async () => {
-        try {
-            const response = await fetch('/api/admin-patients', { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!response.ok) throw new Error('Falha ao buscar pacientes.');
-            const patients = await response.json();
-            renderPatients(patients);
         } catch (error) {
-            console.error(error);
+            console.error('Erro:', error);
+            alert(error.message);
         }
-    };
+    }
 
-    const renderProfessionals = (professionals) => {
-        professionalsTableBody.innerHTML = '';
+    function populateProfessionalsTable(professionals) {
+        if (!professionalsTbody) return;
+        professionalsTbody.innerHTML = '';
         professionals.forEach(prof => {
-            const row = document.createElement('tr');
+            const row = professionalsTbody.insertRow();
+            row.dataset.id = prof.id;
+
             row.innerHTML = `
-                <td>${prof.name}</td>
+                <td>${prof.fullName}</td>
                 <td>${prof.email}</td>
                 <td>${prof.profession}</td>
-                <td>${prof.registrationNumber}</td>
-                <td>${prof.registrationStatus}</td>
-                <td>
-                    ${prof.registrationStatus === 'Pendente' ?
-                    `<button onclick="updateStatus(${prof.id}, 'Aprovado')" class="button-approve">Aprovar</button>
-                     <button onclick="updateStatus(${prof.id}, 'Recusado')" class="button-reject">Recusar</button>` : ''}
+                <td>${prof.professionalLicense}</td>
+                <td><span class="status status-${prof.registrationStatus.toLowerCase()}">${prof.registrationStatus}</span></td>
+                <td class="actions">
+                    <select class="status-select">
+                        <option value="Pendente" ${prof.registrationStatus === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                        <option value="Aprovado" ${prof.registrationStatus === 'Aprovado' ? 'selected' : ''}>Aprovado</option>
+                        <option value="Rejeitado" ${prof.registrationStatus === 'Rejeitado' ? 'selected' : ''}>Rejeitado</option>
+                    </select>
+                    <button class="save-status-btn">Salvar Status</button>
                 </td>
             `;
-            professionalsTableBody.appendChild(row);
         });
-    };
-
-    const renderPatients = (patients) => {
-        patientsTableBody.innerHTML = '';
-        patients.forEach(patient => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${patient.name}</td>
-                <td>${patient.email}</td>
-                <td>${patient.phone}</td>
-                <td></td>
-            `;
-            patientsTableBody.appendChild(row);
+    }
+    
+    const logoutButton = document.getElementById('logout-button');
+    if(logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/admin.html'; // Leva para a página de login
         });
-    };
+    }
 
-    window.updateStatus = async (id, status) => {
-        try {
-            const response = await fetch('/api/update-professional-status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ id, status })
-            });
-            if (!response.ok) throw new Error('Falha ao atualizar status.');
-            fetchProfessionals();
-        } catch (error) {
-            console.error(error);
-        }
-    };
+    if(professionalsTbody){
+        professionalsTbody.addEventListener('click', async (event) => {
+            const target = event.target;
+            if (target.classList.contains('save-status-btn')) {
+                const row = target.closest('tr');
+                const id = row.dataset.id;
+                const token = localStorage.getItem('adminToken');
+                const newStatus = row.querySelector('.status-select').value;
 
-    fetchProfessionals();
-    fetchPatients();
+                if (!id || !token) return;
+
+                try {
+                    const response = await fetch(`/api/admin/professionals/${id}` , {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ registrationStatus: newStatus })
+                    });
+
+                    if (response.ok) {
+                        alert('Status do profissional atualizado com sucesso!');
+                        loadProfessionals(); // Recarrega a tabela
+                    } else {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Falha ao atualizar o status.');
+                    }
+                } catch (error) {
+                    console.error('Erro ao atualizar status:', error);
+                    alert(error.message);
+                }
+            }
+        });
+    }
+
+    // Carrega os profissionais na carga inicial da página (se o token existir)
+    loadProfessionals();
 });
