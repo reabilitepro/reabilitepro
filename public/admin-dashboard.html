@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- META TAGS PARA DESATIVAR O CACHE -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
+    <meta name="theme-color" content="#007bff"/>
+    <link rel="manifest" href="/manifest.json">
+    <title>Painel de Administração - Reabilite Pro</title>
+    <link rel="icon" href="https://i.imgur.com/LN825NZ.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <img src="/logo.png" alt="Reabilite Pro Logo" class="logo">
+        <h1>Reabilite Pro</h1>
+        <h2 id="header-title">Painel de Administração</h2>
+    </header>
+
+    <main>
+        <div id="login-container">
+            <h3>Login do Administrador</h3>
+            <form id="admin-login-form">
+                <label for="admin-email">Email:</label>
+                <input type="email" id="admin-email" required>
+                <label for="admin-password">Senha:</label>
+                <input type="password" id="admin-password" required>
+                <button type="submit">Entrar</button>
+            </form>
+            <a href="/" class="back-link">Voltar à Página Inicial</a>
+        </div>
+
+        <div id="admin-dashboard" style="display: none;">
+            <button id="logout-button" class="button-logout" style="position: absolute; top: 20px; right: 20px;">Sair</button>
+            <div class="admin-section">
+                <h3>Profissionais</h3>
+                <table id="professionals-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Limite de Pacientes</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="admin-section">
+                <h3>Pacientes</h3>
+                <table id="patients-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>Profissional</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- CACHE BUSTING AGRESSIVO -->
+    <script src="admin.js?v=999999"></script> 
+
+    <!-- SCRIPT PARA ANULAR O SERVICE WORKER ANTIGO -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
+            console.log('Service workers antigos foram removidos.');
+          }).then(() => {
+              navigator.serviceWorker.register('/sw.js').then(registration => {
+                console.log('Novo ServiceWorker registado com sucesso: ', registration.scope);
+              }, err => {
+                console.log('Falha ao registar novo ServiceWorker: ', err);
+              });
+          });
+        });
+      }
+    </script>
+</body>
+</html>
