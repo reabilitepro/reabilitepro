@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = '/admin-dashboard.html';
             } else {
                 // Correção: Salva o token com o nome correto para profissionais
-                localStorage.setItem('professionalToken', data.token);
+                localStorage.setItem('professionalToken', data.accessToken);
                 window.location.href = '/professional-dashboard.html';
             }
 
