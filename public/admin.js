@@ -152,3 +152,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+// Comentário para forçar a detecção de mudança no arquivo.
