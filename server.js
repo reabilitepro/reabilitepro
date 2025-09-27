@@ -228,7 +228,7 @@ app.get('/api/admin/professionals', authenticateToken, async (req, res) => {
         return res.status(403).json({ message: 'Acesso negado' });
     }
     try {
-        const { rows } = await pool.query('SELECT id, fullname, email, profession, registrationnumber, registrationstatus FROM professionals ORDER BY id');
+        const { rows } = await pool.query('SELECT id, fullname, email, profession, registrationnumber, registrationstatus, patientlimit FROM professionals ORDER BY id');
         res.json(rows);
     } catch (error) {
         console.error('Erro ao buscar profissionais:', error);
@@ -241,16 +241,38 @@ app.put('/api/admin/professionals/:id', authenticateToken, async (req, res) => {
         return res.status(403).json({ message: 'Acesso negado' });
     }
     const { id } = req.params;
-    const { registrationStatus } = req.body;
+    const { registrationStatus, patientLimit } = req.body;
+
+    if (registrationStatus === undefined && patientLimit === undefined) {
+        return res.status(400).json({ message: 'Nenhuma informação para atualizar foi fornecida.' });
+    }
+
     try {
-        const { rows } = await pool.query(
-            'UPDATE professionals SET registrationstatus = $1 WHERE id = $2 RETURNING *',
-            [registrationStatus, id]
-        );
+        const updates = [];
+        const values = [];
+        let queryIndex = 1;
+
+        if (registrationStatus !== undefined) {
+            updates.push(`registrationstatus = $${queryIndex++}`);
+            values.push(registrationStatus);
+        }
+
+        if (patientLimit !== undefined) {
+            updates.push(`patientlimit = $${queryIndex++}`);
+            values.push(patientLimit);
+        }
+
+        values.push(id);
+
+        const queryText = `UPDATE professionals SET ${updates.join(', ')} WHERE id = $${queryIndex} RETURNING *`;
+
+        const { rows } = await pool.query(queryText, values);
+
         if (rows.length === 0) {
             return res.status(404).json({ message: 'Profissional não encontrado' });
         }
-        res.json({ message: 'Status atualizado com sucesso', professional: rows[0] });
+        res.json({ message: 'Profissional atualizado com sucesso', professional: rows[0] });
+
     } catch (error) {
         console.error('Erro ao atualizar profissional:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
