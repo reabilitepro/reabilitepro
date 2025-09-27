@@ -41,9 +41,15 @@ exports.handler = async function(event, context) {
         // Lógica para obter a lista de profissionais (GET)
         if (event.httpMethod === 'GET') {
             const professionals = await getProfessionals();
+            // Garante que todos os profissionais tenham os campos necessários
+            const professionalsWithDefaults = professionals.map(prof => ({
+                ...prof,
+                registrationstatus: prof.registrationstatus || 'Pendente',
+                patientlimit: prof.patientlimit || 0
+            }));
             return {
                 statusCode: 200,
-                body: JSON.stringify(professionals)
+                body: JSON.stringify(professionalsWithDefaults)
             };
         }
 
@@ -69,7 +75,8 @@ exports.handler = async function(event, context) {
                 profession,
                 password: 'pro123', // Senha padrão temporária
                 registrationNumber: 'N/A',
-                registrationStatus: 'Pendente'
+                registrationStatus: 'Pendente',
+                patientlimit: 0 // Adiciona o limite de pacientes padrão
             };
 
             professionals.push(newProfessional);
