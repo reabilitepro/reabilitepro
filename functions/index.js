@@ -10,6 +10,9 @@ const jwt = require("jsonwebtoken");
 admin.initializeApp();
 const db = admin.firestore();
 
+// Defina as configurações do Firestore para ignorar campos indefinidos
+db.settings({ ignoreUndefinedProperties: true });
+
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
@@ -49,10 +52,9 @@ app.post('/getAdminData', async (req, res) => {
                 id: doc.id,
                 name: data.name || 'N/A',
                 email: data.email || 'N/A',
-                // **CORREÇÃO DEFINITIVA NO BACKEND CORRETO**
                 registrationstatus: data.registrationstatus || 'Pendente', 
                 patientlimit: data.patientlimit || 0,
-                linkCount: 0 // Placeholder, a lógica de links pode ser adicionada depois
+                linkCount: 0
             };
         });
 
@@ -124,8 +126,8 @@ app.post('/api/professionals', async (req, res) => {
             password: hashedPassword,
             dob,
             crefito,
-            registrationstatus: 'Pendente', // Garante o campo na criação
-            patientlimit: 0 // Garante o campo na criação
+            registrationstatus: 'Pendente',
+            patientlimit: 0
         });
         res.status(201).json({ message: 'Profissional registrado com sucesso!', id: userRef.id });
     } catch (error) {
@@ -141,7 +143,6 @@ app.post('/api/login', async (req, res) => {
         
         let collectionName = '';
         if (userType === 'admin') {
-             // Lógica de admin separada, não busca em coleção
              const ADMIN_EMAIL = "admin@reabilite.pro";
              const ADMIN_PASSWORD = "24852230"; 
 
