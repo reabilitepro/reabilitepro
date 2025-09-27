@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('professionalToken');
 
-    // Proteção da página: se não houver token, volta para o login.
+    // Proteção da página: se não houver token, volta para o login correto.
     if (!token) {
-        window.location.href = '/admin.html';
+        window.location.href = '/professional-login.html';
         return;
     }
 
@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
             localStorage.removeItem('professionalToken');
-            window.location.href = '/admin.html';
+            // Envia para a página de login correta ao sair.
+            window.location.href = '/professional-login.html';
         });
     }
 
