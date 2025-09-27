@@ -89,58 +89,32 @@ app.post('/api/patient/login', async (req, res) => {
     }
 });
 
-// --- ROTA DE CADASTRO DE PROFISSIONAL (COM LOGS DETALHADOS) ---
+// --- ROTA DE CADASTRO DE PROFISSIONAL ---
 app.post('/api/professionals', async (req, res) => {
-    console.log('LOG: Rota /api/professionals alcançada.');
-    // CORREÇÃO: Remove dob e phone, que não existem no formulário nem no banco.
     const { fullName, email, password, profession, registrationNumber } = req.body;
-    console.log('LOG: Dados recebidos para cadastro:', { fullName, email, profession }); 
-
     if (!fullName || !email || !password || !profession || !registrationNumber) {
-        console.error('ERRO: Campos obrigatórios ausentes no cadastro.');
         return res.status(400).json({ message: 'Campos obrigatórios ausentes.' });
     }
     
     let client;
     try {
-        console.log('LOG: Gerando hash da senha...');
         const hashedPassword = await bcrypt.hash(password, 10);
-        console.log('LOG: Hash da senha gerado.');
-
-        console.log('LOG: Tentando conectar ao pool do banco de dados...');
         client = await pool.connect();
-        console.log('LOG: Conexão com o banco de dados estabelecida com sucesso.');
-
-        console.log('LOG: Verificando se o e-mail já existe...');
         const check = await client.query('SELECT id FROM professionals WHERE email = $1', [email]);
         if (check.rows.length > 0) {
-            console.warn('AVISO: Tentativa de cadastro com e-mail já existente:', email);
             client.release();
             return res.status(409).json({ message: 'Este email já está cadastrado.' });
         }
-        console.log('LOG: E-mail verificado, não existe.');
-
-        console.log('LOG: Preparando e executando a query de inserção...');
-        // CORREÇÃO: Query de inserção sem as colunas dob e phone.
         const query = 'INSERT INTO professionals (fullName, email, password, profession, registrationNumber, registrationStatus) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id';
-        // CORREÇÃO: Passa apenas os parâmetros existentes.
         await client.query(query, [fullName, email, hashedPassword, profession, registrationNumber, 'Pendente']);
-        console.log('LOG: Profissional inserido no banco de dados com sucesso.');
-
         res.status(201).json({ message: 'Cadastro realizado com sucesso! Aguardando aprovação do administrador.' });
-        console.log('LOG: Resposta de sucesso (201) enviada ao cliente.');
-
     } catch (error) {
-        console.error('ERRO FATAL DURANTE O CADASTRO DE PROFISSIONAL:', error);
+        console.error('ERRO DURANTE O CADASTRO DE PROFISSIONAL:', error);
         return res.status(500).json({ message: 'Erro interno do servidor ao tentar cadastrar.' });
     } finally {
-        if (client) {
-            client.release();
-            console.log('LOG: Conexão com o banco de dados liberada.');
-        }
+        if (client) client.release();
     }
 });
-
 
 // --- ROTA DE CADASTRO DE PACIENTE ---
 app.post('/api/patients', async (req, res) => {
@@ -166,6 +140,85 @@ app.post('/api/patients', async (req, res) => {
         if(client) client.release();
     }
 });
+
+// --- MIDDLEWARE DE AUTENTICAÇÃO DE ADMIN ---
+const authenticateAdmin = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token == null) return res.sendStatus(401);
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err || user.type !== 'admin') {
+            return res.status(403).json({ message: 'Acesso negado.' });
+        }
+        req.user = user;
+        next();
+    });
+};
+
+// --- ROTAS DE ADMINISTRAÇÃO ---
+app.get('/api/admin/professionals', authenticateAdmin, async (req, res) => {
+    let client;
+    try {
+        client = await pool.connect();
+        const result = await client.query('SELECT id, fullName, email, registrationStatus, "patientLimit" FROM professionals ORDER BY id');
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Erro ao buscar profissionais:', error);
+        res.status(500).json({ message: 'Erro interno do servidor.' });
+    } finally {
+        if (client) client.release();
+    }
+});
+
+app.put('/api/admin/professionals/:id', authenticateAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { registrationStatus, patientLimit } = req.body;
+
+    if (!registrationStatus && patientLimit === undefined) {
+        return res.status(400).json({ message: 'Nenhuma ação especificada.' });
+    }
+
+    let client;
+    try {
+        client = await pool.connect();
+        const updates = [];
+        const values = [];
+        let queryIndex = 1;
+
+        if (registrationStatus) {
+            updates.push(`registrationStatus = $${queryIndex++}`);
+            values.push(registrationStatus);
+        }
+        if (patientLimit !== undefined) {
+            updates.push(`"patientLimit" = $${queryIndex++}`);
+            values.push(patientLimit);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ message: 'Nenhum campo válido para atualização.' });
+        }
+
+        values.push(id);
+        const query = `UPDATE professionals SET ${updates.join(', ')} WHERE id = $${queryIndex} RETURNING *`;
+        
+        const result = await client.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Profissional não encontrado.' });
+        }
+
+        res.json(result.rows[0]);
+
+    } catch (error) {
+        console.error('Erro ao atualizar profissional:', error);
+        res.status(500).json({ message: 'Erro interno do servidor.' });
+    } finally {
+        if (client) client.release();
+    }
+});
+
 
 // --- ROTA CATCH-ALL (serve o frontend) ---
 app.get('*', (req, res) => {
