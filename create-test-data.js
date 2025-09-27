@@ -38,8 +38,13 @@ const createTestData = async () => {
         } else {
             // Se o profissional já existe, busca o ID dele
             const existingProf = await client.query('SELECT id FROM professionals WHERE email = $1', [profEmail]);
-            professionalId = existingProf.rows[0].id;
-            console.log(`Profissional de teste já existe com ID: ${professionalId}`);
+            if (existingProf.rows.length > 0) {
+                professionalId = existingProf.rows[0].id;
+                console.log(`Profissional de teste já existe com ID: ${professionalId}`);
+            } else {
+                // Esta parte é uma salvaguarda, não deve ser alcançada em condições normais
+                throw new Error('Falha ao criar ou encontrar o profissional de teste.');
+            }
         }
 
         // 2. Criar Paciente de Teste

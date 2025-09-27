@@ -223,15 +223,16 @@ app.post('/api/patients', async (req, res) => {
 
 
 // --- ROTAS PROTEGIDAS DE ADMINISTRAÇÃO ---
-app.get('/api/admin/professionals', authenticateToken, async (req, res) => {
+app.get('/api/admin/data', authenticateToken, async (req, res) => {
     if (req.user.type !== 'admin') {
         return res.status(403).json({ message: 'Acesso negado' });
     }
     try {
-        const { rows } = await pool.query('SELECT id, fullname, email, profession, registrationnumber, registrationstatus, patientlimit FROM professionals ORDER BY id');
-        res.json(rows);
+        const professionals = await pool.query('SELECT id, fullname, email, profession, registrationnumber, registrationstatus, patientlimit FROM professionals ORDER BY id');
+        const patients = await pool.query('SELECT p.id, p.name, p.phone, pr.fullname as professional_name FROM patients p LEFT JOIN professionals pr ON p.professional_id = pr.id ORDER BY p.id');
+        res.json({ professionals: professionals.rows, patients: patients.rows });
     } catch (error) {
-        console.error('Erro ao buscar profissionais:', error);
+        console.error('Erro ao buscar dados de admin:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
     }
 });
