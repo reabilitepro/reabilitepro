@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = loginForm.password.value;
         let email;
 
-        // Verifica se o usuário digitou um email completo ou apenas o nome de usuário
         if (userInput.includes('@')) {
             email = userInput;
         } else {
@@ -35,12 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.message || 'Falha no login');
             }
 
-            localStorage.setItem('accessToken', data.accessToken);
-
-            // Redirecionamento correto baseado no tipo de usuário
+            // Redirecionamento e armazenamento de token baseado no tipo de usuário
             if (data.userType === 'admin') {
+                localStorage.setItem('accessToken', data.accessToken);
                 window.location.href = '/admin-dashboard.html';
             } else {
+                // Correção: Salva o token com o nome correto para profissionais
+                localStorage.setItem('professionalToken', data.token);
                 window.location.href = '/professional-dashboard.html';
             }
 
