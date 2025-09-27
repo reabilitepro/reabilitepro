@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutButton.textContent = 'Sair';
     logoutButton.id = 'logout-button';
     
-    // Adiciona o botão de logout ao cabeçalho ou outra área apropriada
     const header = document.querySelector('header');
     if(header) header.appendChild(logoutButton);
 
@@ -94,8 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `
                 <td>${prof.fullname}</td>
                 <td>${prof.email}</td>
-                <td>${prof.profession}</td>
-                <td>${prof.registrationnumber}</td>
                 <td><span class="status status-${prof.registrationstatus.toLowerCase()}">${prof.registrationstatus}</span></td>
                 <td><input type="number" class="patient-limit-input" value="${prof.patientlimit || 0}" min="0"></td>
                 <td class="actions"></td>
