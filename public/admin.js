@@ -3,12 +3,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminDashboard = document.getElementById('admin-dashboard');
     const adminLoginForm = document.getElementById('admin-login-form');
     const professionalsTbody = document.getElementById('professionals-table').querySelector('tbody');
+    const logoutButton = document.createElement('button');
 
-    const adminToken = localStorage.getItem('adminToken');
-    if (adminToken) {
+    logoutButton.textContent = 'Sair';
+    logoutButton.id = 'logout-button';
+    
+    // Adiciona o botão de logout ao cabeçalho ou outra área apropriada
+    const header = document.querySelector('header');
+    if(header) header.appendChild(logoutButton);
+
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
         loginContainer.style.display = 'none';
         adminDashboard.style.display = 'block';
         loadProfessionals();
+    } else {
+        loginContainer.style.display = 'block';
+        adminDashboard.style.display = 'none';
     }
 
     adminLoginForm.addEventListener('submit', async (event) => {
@@ -26,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const data = await response.json();
                 if (data.userType === 'admin') {
-                    localStorage.setItem('adminToken', data.accessToken);
+                    localStorage.setItem('accessToken', data.accessToken);
                     loginContainer.style.display = 'none';
                     adminDashboard.style.display = 'block';
                     loadProfessionals();
@@ -42,12 +53,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    logoutButton.addEventListener('click', () => {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/admin.html';
+    });
+
     async function loadProfessionals() {
-        const token = localStorage.getItem('adminToken');
+        const token = localStorage.getItem('accessToken');
         if (!token) return;
 
         try {
-            // Adiciona um parâmetro de cache-busting para garantir que os dados mais recentes sejam sempre buscados
             const timestamp = new Date().getTime();
             const response = await fetch(`/api/admin/professionals?_t=${timestamp}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -55,8 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 if(response.status === 403) {
-                    localStorage.removeItem('adminToken');
-                    window.location.reload(); // Recarrega a página se o token for inválido
+                    localStorage.removeItem('accessToken');
+                    window.location.reload();
                 }
                 throw new Error('Não foi possível carregar os profissionais.');
             }
@@ -108,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!row) return;
         
         const id = row.dataset.id;
-        const token = localStorage.getItem('adminToken');
+        const token = localStorage.getItem('accessToken');
         
         if (!id || !token) return;
 
@@ -118,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.classList.contains('approve-btn')) {
             action = 'aprovar';
             body.registrationStatus = 'Aprovado';
-            // Ao aprovar, também salvamos o limite de pacientes que estiver no campo
             const limitInput = row.querySelector('.patient-limit-input');
             body.patientLimit = parseInt(limitInput.value, 10);
 
@@ -141,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.ok) {
-                alert(`Profissional atualizado com sucesso!`);
+                alert('Profissional atualizado com sucesso!');
                 loadProfessionals(); 
             } else {
                 const errorData = await response.json();
