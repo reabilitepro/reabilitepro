@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminLoginForm = document.getElementById('admin-login-form');
     const professionalsTbody = document.getElementById('professionals-table').querySelector('tbody');
 
-    // Verifica se já existe um token de admin no localStorage
     const adminToken = localStorage.getItem('adminToken');
     if (adminToken) {
         loginContainer.style.display = 'none';
@@ -12,14 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
         loadProfessionals();
     }
 
-    // Handler para o login do admin
     adminLoginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const email = document.getElementById('admin-email').value;
         const password = document.getElementById('admin-password').value;
 
         try {
-            // Rota de login unificada, que também serve para admin
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -28,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 const data = await response.json();
-                // Verifica se o tipo de usuário é realmente 'admin'
                 if (data.userType === 'admin') {
                     localStorage.setItem('adminToken', data.accessToken);
                     loginContainer.style.display = 'none';
@@ -46,18 +42,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Carrega e exibe a lista de profissionais
     async function loadProfessionals() {
         const token = localStorage.getItem('adminToken');
         if (!token) return;
 
         try {
-            const response = await fetch('/api/admin/professionals', {
+            // Adiciona um parâmetro de cache-busting para garantir que os dados mais recentes sejam sempre buscados
+            const timestamp = new Date().getTime();
+            const response = await fetch(`/api/admin/professionals?_t=${timestamp}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (!response.ok) {
-                if(response.status === 403) localStorage.removeItem('adminToken'); // Token inválido
+                if(response.status === 403) {
+                    localStorage.removeItem('adminToken');
+                    window.location.reload(); // Recarrega a página se o token for inválido
+                }
                 throw new Error('Não foi possível carregar os profissionais.');
             }
 
@@ -70,16 +70,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Preenche a tabela de profissionais com os dados
     function populateProfessionalsTable(professionals) {
         professionalsTbody.innerHTML = '';
         professionals.forEach(prof => {
             const row = professionalsTbody.insertRow();
-            row.dataset.id = prof.id; // Adiciona o ID do profissional na linha
+            row.dataset.id = prof.id;
 
             row.innerHTML = `
                 <td>${prof.fullName}</td>
                 <td>${prof.email}</td>
+                <td>${prof.profession}</td>
+                <td>${prof.professionalLicense}</td>
                 <td><span class="status status-${prof.registrationStatus.toLowerCase()}">${prof.registrationStatus}</span></td>
                 <td><input type="number" class="patient-limit-input" value="${prof.patientLimit || 0}" min="0"></td>
                 <td class="actions"></td>
@@ -87,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const actionsCell = row.querySelector('.actions');
             
-            // Adiciona o botão de Aprovar se o status for Pendente
             if (prof.registrationStatus === 'Pendente') {
                 const approveButton = document.createElement('button');
                 approveButton.textContent = 'Aprovar';
@@ -95,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 actionsCell.appendChild(approveButton);
             }
 
-            // Adiciona o botão de Salvar para o limite de pacientes
             const saveButton = document.createElement('button');
             saveButton.textContent = 'Salvar';
             saveButton.className = 'save-btn';
@@ -103,10 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Delegação de eventos para os botões de ação na tabela
     professionalsTbody.addEventListener('click', async (event) => {
         const target = event.target;
         const row = target.closest('tr');
+        if (!row) return;
+        
         const id = row.dataset.id;
         const token = localStorage.getItem('adminToken');
         
@@ -115,13 +115,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let body = {};
         let action = '';
 
-        // Se o botão 'Aprovar' foi clicado
         if (target.classList.contains('approve-btn')) {
             action = 'aprovar';
             body.registrationStatus = 'Aprovado';
-        } 
-        // Se o botão 'Salvar' foi clicado
-        else if (target.classList.contains('save-btn')) {
+            // Ao aprovar, também salvamos o limite de pacientes que estiver no campo
+            const limitInput = row.querySelector('.patient-limit-input');
+            body.patientLimit = parseInt(limitInput.value, 10);
+
+        } else if (target.classList.contains('save-btn')) {
             action = 'salvar';
             const limitInput = row.querySelector('.patient-limit-input');
             body.patientLimit = parseInt(limitInput.value, 10);
@@ -141,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 alert(`Profissional atualizado com sucesso!`);
-                loadProfessionals(); // Recarrega a tabela para mostrar o estado atualizado
+                loadProfessionals(); 
             } else {
                 const errorData = await response.json();
                 throw new Error(errorData.message || `Falha ao ${action}.`);
@@ -152,4 +153,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-// Comentário para forçar a detecção de mudança no arquivo.
