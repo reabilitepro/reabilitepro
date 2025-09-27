@@ -90,17 +90,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = professionalsTbody.insertRow();
             row.dataset.id = prof.id;
 
+            const status = prof.registrationstatus || 'Indefinido';
+            const statusClass = status.toLowerCase();
+
             row.innerHTML = `
-                <td>${prof.fullname}</td>
-                <td>${prof.email}</td>
-                <td><span class="status status-${prof.registrationstatus.toLowerCase()}">${prof.registrationstatus}</span></td>
+                <td>${prof.fullname || 'N/A'}</td>
+                <td>${prof.email || 'N/A'}</td>
+                <td><span class="status status-${statusClass}">${status}</span></td>
                 <td><input type="number" class="patient-limit-input" value="${prof.patientlimit || 0}" min="0"></td>
                 <td class="actions"></td>
             `;
 
             const actionsCell = row.querySelector('.actions');
             
-            if (prof.registrationstatus === 'Pendente') {
+            if (status === 'Pendente') {
                 const approveButton = document.createElement('button');
                 approveButton.textContent = 'Aprovar';
                 approveButton.className = 'approve-btn';
