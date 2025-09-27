@@ -1,111 +1,111 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const welcomeMessage = document.getElementById('welcome-message');
-    const invitationLinkContainer = document.getElementById('invitation-link-container');
-    const patientsTable = document.querySelector('#patients-table tbody');
+    // Seletores de elementos da página
+    const generateLinkButton = document.getElementById('generate-link-btn');
+    const patientsTableBody = document.querySelector('#patients-table tbody');
     const logoutButton = document.getElementById('logout-button');
-    const token = localStorage.getItem('accessToken');
 
-    if (!token) {
-        window.location.href = '/professional-login.html';
-        return;
+    // Pega o token do profissional do localStorage
+    const professionalToken = localStorage.getItem('professionalToken');
+
+    // 1. VERIFICAÇÃO DE AUTENTICAÇÃO
+    // Se não houver token, redireciona imediatamente para a página de login.
+    if (!professionalToken) {
+        window.location.href = '/admin.html'; 
+        return; // Interrompe a execução do script
     }
 
-    logoutButton.addEventListener('click', () => {
-        localStorage.removeItem('accessToken');
-        alert('Você foi desconectado.');
-        window.location.href = '/professional-login.html';
-    });
+    // 2. CONFIGURAÇÃO DO BOTÃO DE LOGOUT
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            localStorage.removeItem('professionalToken');
+            alert('Você foi desconectado.');
+            window.location.href = '/admin.html';
+        });
+    }
 
+    // 3. FUNÇÃO PARA COPIAR TEXTO PARA A ÁREA DE TRANSFERÊNCIA
     const copyToClipboard = (text, button) => {
         navigator.clipboard.writeText(text).then(() => {
             const originalText = button.textContent;
             button.textContent = 'Copiado!';
             button.disabled = true;
-            button.style.backgroundColor = '#28a745';
+            button.style.backgroundColor = '#28a745'; // Verde para indicar sucesso
+            // Retorna ao estado original após um tempo
             setTimeout(() => {
                 button.textContent = originalText;
                 button.disabled = false;
-                button.style.backgroundColor = '';
-            }, 2500);
+                button.style.backgroundColor = ''; // Cor original
+            }, 3000);
         }).catch(err => {
-            console.error('Error copying link: ', err);
-            alert('Falha ao copiar o link.');
+            console.error('Erro ao copiar o link: ', err);
+            alert('Falha ao copiar o link para a área de transferência.');
         });
     };
 
-    const generateAndCopyLink = async (button) => {
+    // 4. FUNÇÃO PARA GERAR O LINK DE CONVITE
+    const handleGenerateLink = async () => {
+        const button = generateLinkButton;
+        button.disabled = true; // Desabilita o botão para evitar cliques múltiplos
+        button.textContent = 'Gerando...';
+
         try {
-            const response = await fetch('/api/professional-generate-link', {
+            // Chama a nova rota do backend para gerar o link
+            const response = await fetch('/api/professionals/generate-link', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    // Envia o token de profissional para autenticação
+                    'Authorization': `Bearer ${professionalToken}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('accessToken');
-                window.location.href = '/professional-login.html';
-                return;
-            }
-            if (!response.ok) {
-                throw new Error('Falha ao gerar o link no servidor.');
-            }
-
             const data = await response.json();
-            const fullCorrectLink = `${window.location.origin}${data.invitation_link}`;
 
-            copyToClipboard(fullCorrectLink, button);
+            // Se a resposta não for OK, trata como um erro
+            if (!response.ok) {
+                // Se a sessão expirou ou o acesso foi negado, desloga o usuário
+                if (response.status === 401 || response.status === 403) {
+                    localStorage.removeItem('professionalToken');
+                    window.location.href = '/admin.html';
+                }
+                throw new Error(data.message || 'Falha ao gerar o link no servidor.');
+            }
+
+            // Se tudo deu certo, copia o link recebido para a área de transferência
+            copyToClipboard(data.invitationLink, button);
 
         } catch (error) {
-            console.error('Error generating link:', error);
-            alert(error.message);
+            console.error('Erro ao gerar link:', error);
+            alert(error.message); // Exibe a mensagem de erro para o usuário (ex: "Limite de pacientes atingido")
+            button.textContent = 'Gerar e Copiar Novo Link de Paciente'; // Restaura o texto do botão em caso de erro
+        } finally {
+            // Garante que o botão seja reativado se não estiver no modo "Copiado!"
+            if (button.textContent !== 'Copiado!') {
+                button.disabled = false;
+            }
         }
     };
 
-    const setupDashboard = () => {
-        fetch('/api/dashboard', { headers: { 'Authorization': `Bearer ${token}` } })
-            .then(res => res.ok ? res.json() : window.location.href = '/professional-login.html')
-            .then(data => {
-                if(data) welcomeMessage.textContent = `Bem-vindo(a), ${data.name}!`;
-            })
-            .catch(err => console.error('Failed to fetch professional name', err));
+    // 5. Adiciona o listener de evento ao botão de gerar link
+    if (generateLinkButton) {
+        generateLinkButton.addEventListener('click', handleGenerateLink);
+    }
 
-        invitationLinkContainer.innerHTML = '';
-        const generateButton = document.createElement('button');
-        generateButton.textContent = 'Gerar e Copiar Novo Link de Paciente';
-        generateButton.className = 'button-primary';
-        generateButton.onclick = () => generateAndCopyLink(generateButton);
-        invitationLinkContainer.appendChild(generateButton);
-    };
-
+    // 6. FUNÇÃO PARA CARREGAR PACIENTES (a ser implementada ou conectada)
     const fetchPatients = async () => {
-        try {
-            const response = await fetch('/api/professional-patients', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) throw new Error('Falha ao buscar pacientes');
-            const patients = await response.json();
-            patientsTable.innerHTML = '';
-            patients.forEach(patient => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${patient.id}</td>
-                    <td>${patient.name}</td>
-                    <td>${patient.phone}</td>
-                    <td><button onclick="viewPatient(${patient.id})" class="button-secondary">Ver Detalhes</button></td>
-                `;
-                patientsTable.appendChild(row);
-            });
-        } catch (error) {
-            console.error('Error:', error);
+        // Esta função será conectada à rota correta para buscar os pacientes do profissional
+        console.log("Funcionalidade de carregar pacientes ainda será implementada.");
+        if (patientsTableBody) {
+            //patientsTableBody.innerHTML = '<tr><td colspan="4">Carregando pacientes...</td></tr>';
+            // Implementar a chamada fetch para /api/professionals/patients aqui
         }
     };
     
-    setupDashboard();
+    // Inicializa o dashboard
     fetchPatients();
 });
 
+// Função global para ver detalhes do paciente (se aplicável)
 function viewPatient(patientId) {
     window.location.href = `/patient-details.html?id=${patientId}`;
 }

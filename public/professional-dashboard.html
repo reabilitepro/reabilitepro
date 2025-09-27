@@ -19,14 +19,13 @@
     </header>
 
     <main>
-        <h2 id="welcome-message">Carregando...</h2>
+        <h2 id="welcome-message">Painel do Profissional</h2>
         
         <div class="dashboard-section">
-            <h3>Seu Link de Convite Ativo</h3>
-            <p>Envie o link abaixo para seu paciente realizar o cadastro. O link só pode ser usado uma vez e um novo link aparecerá automaticamente.</p>
-            <div id="invitation-link-container">
-                <!-- O botão de copiar link aparecerá aqui -->
-            </div>
+            <h3>Gerar Link de Convite para Paciente</h3>
+            <p>Clique no botão para gerar um link de uso único. Você tem um limite de pacientes que pode cadastrar.</p>
+            <!-- Botão que o nosso JavaScript irá controlar -->
+            <button id="generate-link-btn" class="button-primary">Gerar e Copiar Novo Link do Paciente</button>
         </div>
 
         <div class="dashboard-section">
@@ -40,13 +39,17 @@
                         <th>Ações</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- Lista de pacientes será preenchida aqui -->
+                <tbody id="patients-table-body">
+                    <!-- A lista de pacientes será preenchida aqui pelo JS -->
+                    <tr>
+                        <td colspan="4" style="text-align: center;">Carregando...</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </main>
 
+    <!-- Carrega o script que controla a página -->
     <script src="professional-dashboard.js"></script>
     <script>
       if ('serviceWorker' in navigator) {
