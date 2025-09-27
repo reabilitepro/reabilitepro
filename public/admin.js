@@ -92,18 +92,18 @@ document.addEventListener('DOMContentLoaded', () => {
             row.dataset.id = prof.id;
 
             row.innerHTML = `
-                <td>${prof.fullName}</td>
+                <td>${prof.fullname}</td>
                 <td>${prof.email}</td>
                 <td>${prof.profession}</td>
-                <td>${prof.professionalLicense}</td>
-                <td><span class="status status-${prof.registrationStatus.toLowerCase()}">${prof.registrationStatus}</span></td>
-                <td><input type="number" class="patient-limit-input" value="${prof.patientLimit || 0}" min="0"></td>
+                <td>${prof.registrationnumber}</td>
+                <td><span class="status status-${prof.registrationstatus.toLowerCase()}">${prof.registrationstatus}</span></td>
+                <td><input type="number" class="patient-limit-input" value="${prof.patientlimit || 0}" min="0"></td>
                 <td class="actions"></td>
             `;
 
             const actionsCell = row.querySelector('.actions');
             
-            if (prof.registrationStatus === 'Pendente') {
+            if (prof.registrationstatus === 'Pendente') {
                 const approveButton = document.createElement('button');
                 approveButton.textContent = 'Aprovar';
                 approveButton.className = 'approve-btn';
