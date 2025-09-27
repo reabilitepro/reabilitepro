@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminToken = localStorage.getItem('adminToken');
     const currentPage = window.location.pathname;
 
-    // 1. Proteção da Página de Administrador
     if (!adminToken && currentPage.includes('admin-dashboard.html')) {
         window.location.href = '/admin.html';
         return;
@@ -13,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // --- Inicialização da Lógica Específica ---
     if (currentPage.includes('admin-dashboard.html')) {
         handleAdminDashboardPage();
     }
@@ -22,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
         handleLoginPage();
     }
 
-    // --- LÓGICA DA PÁGINA DE LOGIN (admin.html) ---
     function handleLoginPage() {
         const loginForm = document.getElementById('admin-login-form');
         if (loginForm) {
@@ -32,11 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const password = document.getElementById('admin-password').value;
 
                 try {
-                    // A rota de login é a mesma, mas o frontend redireciona com base no sucesso
                     const response = await fetch('/api/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password, userType: 'admin' }),
+                        body: JSON.stringify({ email, password }),
                     });
 
                     const data = await response.json();
@@ -45,12 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error(data.message || 'Credenciais inválidas.');
                     }
 
-                    // Apenas armazena o token de admin e redireciona
                     if (data.userType === 'admin') {
                         localStorage.setItem('adminToken', data.accessToken);
                         window.location.href = '/admin-dashboard.html';
                     } else {
-                        // Caso a API retorne um tipo diferente por engano
                         throw new Error('Acesso de administrador negado.');
                     }
                 } catch (error) {
@@ -60,9 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- LÓGICA DO PAINEL DE ADMIN ---
     function handleAdminDashboardPage() {
         const professionalsTbody = document.getElementById('professionals-table-body');
+        const patientsTbody = document.getElementById('patients-table-body');
         const logoutButton = document.getElementById('logout-button');
 
         if (logoutButton) {
@@ -72,24 +66,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        if (professionalsTbody) {
-            loadProfessionals(adminToken, professionalsTbody);
+        if (professionalsTbody && patientsTbody) {
+            loadAdminData(adminToken, professionalsTbody, patientsTbody);
             professionalsTbody.addEventListener('click', (event) => {
                  if (event.target.classList.contains('save-status-btn')) {
                     const row = event.target.closest('tr');
                     const id = row.dataset.id;
                     const newStatus = row.querySelector('.status-select').value;
-                    updateProfessionalStatus(id, newStatus, adminToken, professionalsTbody);
+                    updateProfessionalStatus(id, newStatus, adminToken, professionalsTbody, patientsTbody);
                 }
             });
         }
     }
 
-    // --- Funções Auxiliares do Painel de Admin ---
-
-    async function loadProfessionals(token, tbody) {
+    async function loadAdminData(token, professionalsTbody, patientsTbody) {
         try {
-            const response = await fetch(`/api/admin/professionals`, {
+            const response = await fetch(`/api/admin/data`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -98,10 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`Falha ao carregar dados: ${response.status} ${errorText}`); 
             }
 
-            const professionals = await response.json();
-            populateProfessionalsTable(professionals, tbody);
+            const data = await response.json();
+            populateProfessionalsTable(data.professionals, professionalsTbody);
+            populatePatientsTable(data.patients, patientsTbody);
         } catch (error) {
-            console.error('Erro detalhado ao carregar profissionais:', error);
+            console.error('Erro detalhado ao carregar dados de admin:', error);
             alert(error.message);
         }
     }
@@ -119,11 +112,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = tbody.insertRow();
             row.dataset.id = prof.id;
 
-            // **CORREÇÃO DEFINITIVA E FINAL**
-            const status = prof.registrationstatus || prof.registrationStatus || 'Pendente';
-            const statusClass = String(status).toLowerCase(); // Garante que é uma string
+            const status = prof.registrationstatus || 'Pendente';
+            const statusClass = String(status).toLowerCase();
             const patientLimit = prof.patientlimit ?? 'N/A';
-            const name = prof.name || prof.fullname || 'N/A';
+            const name = prof.fullname || 'N/A';
             const email = prof.email || 'N/A';
 
             row.innerHTML = `
@@ -143,7 +135,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function updateProfessionalStatus(id, newStatus, token, tbody) {
+    function populatePatientsTable(patients, tbody) {
+        tbody.innerHTML = '';
+        if (!patients || patients.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4">Nenhum paciente encontrado.</td></tr>';
+            return;
+        }
+
+        patients.forEach(patient => {
+            if (!patient) return;
+
+            const row = tbody.insertRow();
+            row.dataset.id = patient.id;
+
+            row.innerHTML = `
+                <td>${patient.id}</td>
+                <td>${patient.name || 'N/A'}</td>
+                <td>${patient.phone || 'N/A'}</td>
+                <td>${patient.professional_name || 'Nenhum'}</td>
+            `;
+        });
+    }
+
+    async function updateProfessionalStatus(id, newStatus, token, professionalsTbody, patientsTbody) {
         try {
             const response = await fetch(`/api/admin/professionals/${id}`, {
                 method: 'PUT',
@@ -156,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 alert('Status atualizado com sucesso!');
-                loadProfessionals(token, tbody);
+                loadAdminData(token, professionalsTbody, patientsTbody);
             } else {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Falha ao atualizar.');

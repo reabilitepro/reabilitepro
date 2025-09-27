@@ -1,13 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('accessToken');
-    const userType = localStorage.getItem('userType');
+    // CORREÇÃO: Procurar por 'professionalToken' em vez de 'accessToken'
+    const token = localStorage.getItem('professionalToken');
 
-    if (!token || userType !== 'professional') {
+    // Se o token não existir, o acesso é negado
+    if (!token) {
+        // Limpa qualquer dado residual e redireciona para a página de login correta
+        localStorage.clear();
         window.location.href = '/professional-login.html';
         return;
     }
 
-    const professionalName = localStorage.getItem('professionalName');
+    // O resto da lógica do painel só é executada se o token existir
+    const professionalName = localStorage.getItem('professionalName'); // Assumindo que o nome possa ser guardado no futuro
     if (professionalName) {
         document.getElementById('professional-name').textContent = professionalName;
     }
@@ -17,7 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     generateLinkBtn.addEventListener('click', async () => {
         try {
-            const response = await fetch('/api/admin/generate-invitation-links', {
+            // CORREÇÃO: A rota para gerar links é /api/professionals/generate-link
+            const response = await fetch('/api/professionals/generate-link', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
