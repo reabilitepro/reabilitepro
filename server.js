@@ -257,6 +257,22 @@ app.put('/api/admin/professionals/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// --- ROTA DA IA ---
+app.post('/api/ai/command', authenticateToken, async (req, res) => {
+    if (req.user.type !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado' });
+    }
+
+    const { command } = req.body;
+    console.log(`[Comando IA Recebido]: ${command}`); // Log para vermos no servidor
+
+    // SIMULAÇÃO: No futuro, aqui chamaremos a lógica real da IA.
+    // Por enquanto, apenas devolvemos uma resposta de confirmação.
+    const aiResponse = `Recebi seu comando: "${command}". Estou processando a resposta e logo ela aparecerá aqui.`;
+
+    res.json({ reply: aiResponse });
+});
+
 
 // --- ROTA CATCH-ALL (DEVE SER A ÚLTIMA) ---
 // Serve a página de login para qualquer rota não correspondida pela API ou arquivos estáticos.

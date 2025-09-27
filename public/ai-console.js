@@ -2,10 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatHistory = document.getElementById('ai-chat-history');
     const commandInput = document.getElementById('ai-command-input');
     const sendButton = document.getElementById('ai-send-command-btn');
+    const adminToken = localStorage.getItem('adminToken'); // Pega o token de admin
 
     if (!chatHistory || !commandInput || !sendButton) {
-        // Se os elementos não existirem (ex: em outra página), não faz nada.
-        return;
+        return; // Não executa se não estiver na página certa
     }
 
     // --- FUNÇÃO PARA ADICIONAR MENSAGENS AO CHAT ---
@@ -19,39 +19,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
         messageDiv.appendChild(messageParagraph);
         chatHistory.appendChild(messageDiv);
-
-        // Rola para a mensagem mais recente
         chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 
     // --- FUNÇÃO PARA LIDAR COM O ENVIO DO COMANDO ---
-    function handleSendCommand() {
+    async function handleSendCommand() {
         const command = commandInput.value.trim();
         if (command === '') return;
 
-        // 1. Adiciona o comando do usuário à interface
         addMessageToChat(command, 'user');
-
-        // 2. Limpa o campo de entrada
         commandInput.value = '';
         commandInput.focus();
 
-        // 3. Simula uma resposta da IA e dá a instrução de fluxo
-        setTimeout(() => {
-            const aiResponse = `Comando recebido: "${command}". Por enquanto, nosso fluxo é híbrido. Por favor, copie este comando e cole no chat do IDE para que eu possa executá-lo com minhas ferramentas.`;
-            addMessageToChat(aiResponse, 'ai');
-        }, 500); // Meio segundo de delay para simular o "pensamento"
+        // Adiciona uma mensagem de "carregando" para o usuário saber que algo está acontecendo
+        const thinkingMessage = addMessageToChat('Processando...', 'ai');
+
+        try {
+            const response = await fetch('/api/ai/command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Envia o token para autenticar a requisição
+                    'Authorization': `Bearer ${adminToken}` 
+                },
+                body: JSON.stringify({ command: command })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Ocorreu um erro no servidor.');
+            }
+
+            const data = await response.json();
+
+            // Atualiza a mensagem de "Processando..." com a resposta real
+            // (ou você pode remover a anterior e adicionar esta nova)
+            addMessageToChat(data.reply, 'ai');
+
+        } catch (error) {
+            console.error('Erro ao enviar comando para a IA:', error);
+            addMessageToChat(`Erro: ${error.message}`, 'ai');
+        }
     }
 
     // --- EVENT LISTENERS ---
     sendButton.addEventListener('click', handleSendCommand);
 
-    // Permite enviar com "Enter" (ou "Shift+Enter" para nova linha)
     commandInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault(); // Impede a criação de uma nova linha
+            event.preventDefault();
             handleSendCommand();
         }
     });
-
 });

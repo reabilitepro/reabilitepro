@@ -1,39 +1,29 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const adminToken = localStorage.getItem('adminToken');
     const currentPage = window.location.pathname;
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('professionalToken');
 
-    // --- ROTEAMENTO E PROTEÇÃO DE PÁGINAS ---
-    if (token) {
-        try {
-            const userType = JSON.parse(atob(token.split('.')[1])).type;
-
-            if (userType === 'admin' && !currentPage.includes('admin-dashboard.html')) {
-                window.location.href = '/admin-dashboard.html';
-                return;
-            } 
-            if (userType === 'professional' && !currentPage.includes('professional-dashboard.html')) {
-                window.location.href = '/professional-dashboard.html';
-                return;
-            }
-        } catch (e) {
-            localStorage.clear();
-            window.location.href = '/admin.html'; // Se o token for inválido, limpa tudo e volta para o login
-            return;
-        }
-    } else {
-        // Se não há token, só pode ficar na página de login/registro.
-        if (currentPage.includes('admin-dashboard.html') || currentPage.includes('professional-dashboard.html')) {
-            window.location.href = '/admin.html';
-            return;
-        }
+    // 1. Proteção da Página de Administrador
+    // Se não há token de admin e estamos na página do admin, expulsa para o login.
+    if (!adminToken && currentPage.includes('admin-dashboard.html')) {
+        window.location.href = '/admin.html';
+        return;
     }
 
-    // --- INICIALIZAÇÃO DA PÁGINA ESPECÍFICA ---
+    // Se há um token de admin, mas o usuário está na página de login, redireciona para o dashboard.
+    if (adminToken && !currentPage.includes('admin-dashboard.html')) {
+        window.location.href = '/admin-dashboard.html';
+        return;
+    }
+
+    // --- Inicialização da Lógica Específica ---
+
+    // Só executa o código do painel se estivermos na página correta
     if (currentPage.includes('admin-dashboard.html')) {
         handleAdminDashboardPage();
-    } else if (currentPage.includes('professional-dashboard.html')) {
-        handleProfessionalDashboardPage();
-    } else if (currentPage.includes('admin.html') || currentPage.endsWith('/')) {
+    }
+    
+    // Só executa a lógica de login na página de login
+    if (currentPage.includes('admin.html') || currentPage.endsWith('/')) {
         handleLoginPage();
     }
 
@@ -59,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error(data.message || 'Credenciais inválidas.');
                     }
 
+                    // O backend agora decide o tipo. O frontend apenas armazena o token correto.
                     if (data.userType === 'admin') {
                         localStorage.setItem('adminToken', data.accessToken);
                         window.location.href = '/admin-dashboard.html';
@@ -77,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleAdminDashboardPage() {
         const professionalsTbody = document.getElementById('professionals-table-body');
         const logoutButton = document.getElementById('logout-button');
-        const adminToken = localStorage.getItem('adminToken');
 
         if (logoutButton) {
             logoutButton.addEventListener('click', () => {
@@ -98,13 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
-    
-    // --- LÓGICA DO PAINEL DO PROFISSIONAL ---
-    function handleProfessionalDashboardPage() {
-        // A lógica desta página foi movida para 'professional-dashboard.js' para maior clareza.
-        // Este arquivo garante que o usuário chegue aqui, e o script específico da página assume.
-        console.log("Roteador confirmou: Página do Profissional. O script professional-dashboard.js assumirá.");
-    }
 
     // --- Funções Auxiliares do Painel de Admin ---
 
@@ -119,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const professionals = await response.json();
             populateProfessionalsTable(professionals, tbody);
         } catch (error) {
+            console.error('Erro ao carregar profissionais:', error); // Usa console.error para não travar o usuário
             alert(error.message);
         }
     }
@@ -130,11 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // CORREÇÃO: Usar os nomes de propriedade em minúsculas que vêm do banco de dados.
         professionals.forEach(prof => {
             const row = tbody.insertRow();
             row.dataset.id = prof.id;
-            // CORREÇÃO APLICADA AQUI:
             row.innerHTML = `
                 <td>${prof.fullname || 'N/A'}</td>
                 <td>${prof.email || 'N/A'}</td>
