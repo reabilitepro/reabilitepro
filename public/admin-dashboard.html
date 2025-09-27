@@ -17,6 +17,23 @@
 
     <main>
         <div class="admin-container">
+            <!-- Seção de IA como a primeira e principal -->
+            <div class="admin-section">
+                <h2>Console de IA</h2>
+                <div id="ai-console" class="ai-console">
+                    <div id="ai-chat-history" class="ai-chat-history">
+                        <!-- Mensagem inicial da IA -->
+                        <div class="ai-message">
+                            <p class="message-text">Olá! Sou sua assistente de IA. Digite um comando abaixo para começar a modificar ou consultar informações sobre o projeto Reabilite.pro.</p>
+                        </div>
+                    </div>
+                    <div class="ai-input-area">
+                        <textarea id="ai-command-input" placeholder="Digite seu comando aqui... (Ex: 'liste todos os arquivos na pasta public')" rows="3"></textarea>
+                        <button id="ai-send-command-btn" class="button-primary">Enviar</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="admin-section">
                 <h2>Gerenciar Profissionais</h2>
                 <div class="table-container">
@@ -55,6 +72,9 @@
         </div>
     </main>
 
+    <!-- O roteador principal -->
     <script src="/admin-dashboard.js"></script>
+    <!-- O novo cérebro do console de IA -->
+    <script src="/ai-console.js"></script>
 </body>
 </html>
