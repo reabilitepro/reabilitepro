@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logoutButton.addEventListener('click', () => {
         localStorage.removeItem('accessToken');
-        window.location.href = '/admin-dashboard.html';
+        window.location.href = '/admin.html';
     });
 
     async function loadProfessionals() {

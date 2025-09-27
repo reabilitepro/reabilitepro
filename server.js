@@ -273,6 +273,13 @@ app.post('/api/ai/command', authenticateToken, async (req, res) => {
     res.json({ reply: aiResponse });
 });
 
+
+// --- ROTA CATCH-ALL (DEVE SER A ÚLTIMA) ---
+// Serve a página de login para qualquer rota não correspondida pela API ou arquivos estáticos.
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 // --- INICIALIZAÇÃO DO SERVIDOR ---
 const startServer = async () => {
     await createTables();
