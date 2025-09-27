@@ -3,14 +3,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const patientsTableBody = document.getElementById('patients-table-body');
     const logoutButton = document.getElementById('logout-button');
 
+    // CORREÇÃO: Usar 'accessToken' e redirecionar para a página de login correta.
     logoutButton.addEventListener('click', () => {
-        localStorage.removeItem('adminToken');
-        window.location.href = '/admin-login.html';
+        localStorage.removeItem('accessToken');
+        window.location.href = '/professional-login.html';
     });
 
-    const token = localStorage.getItem('adminToken');
+    // CORREÇÃO: Buscar o token pelo nome correto ('accessToken').
+    const token = localStorage.getItem('accessToken');
     if (!token) {
-        window.location.href = '/admin-login.html';
+        // CORREÇÃO: Redirecionar para a página de login correta.
+        window.location.href = '/professional-login.html';
+        return; // Parar a execução do script se não houver token.
     }
 
     const fetchProfessionals = async () => {
@@ -46,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${prof.registrationNumber}</td>
                 <td>${prof.registrationStatus}</td>
                 <td>
-                    ${prof.registrationStatus === 'Pendente' ? 
+                    ${prof.registrationStatus === 'Pendente' ?
                     `<button onclick="updateStatus(${prof.id}, 'Aprovado')" class="button-approve">Aprovar</button>
                      <button onclick="updateStatus(${prof.id}, 'Recusado')" class="button-reject">Recusar</button>` : ''}
                 </td>
@@ -73,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/update-professional-status', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
