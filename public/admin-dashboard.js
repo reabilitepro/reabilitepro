@@ -1,26 +1,39 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Roteamento e lógica principal
+    // Ponto de entrada único para a lógica de autenticação
     const currentPage = window.location.pathname;
 
-    if (currentPage.includes('admin.html')) {
+    if (currentPage.includes('admin.html') || currentPage.endsWith('/')) { // A raiz também é uma página de login
         handleLoginPage();
     } else if (currentPage.includes('admin-dashboard.html')) {
-        handleDashboardPage();
+        handleAdminDashboardPage();
+    } else if (currentPage.includes('professional-dashboard.html')) {
+        handleProfessionalDashboardPage();
     }
 
-    // Lógica da PÁGINA DE LOGIN (admin.html)
+    // --- LÓGICA DA PÁGINA DE LOGIN (admin.html) ---
     function handleLoginPage() {
-        const adminLoginForm = document.getElementById('admin-login-form');
-        const adminToken = localStorage.getItem('adminToken');
+        const loginForm = document.getElementById('admin-login-form'); // O formulário é o mesmo para ambos
+        const token = localStorage.getItem('adminToken') || localStorage.getItem('professionalToken');
 
-        // Se já tem token, vai direto pro dashboard
-        if (adminToken) {
-            window.location.href = '/admin-dashboard.html';
-            return;
+        // Se já existe um token, redireciona para o painel correto
+        if (token) {
+            // É preciso decodificar o token para saber o tipo de usuário
+            try {
+                const userType = JSON.parse(atob(token.split('.')[1])).type;
+                if (userType === 'admin') {
+                    window.location.href = '/admin-dashboard.html';
+                } else if (userType === 'professional') {
+                    window.location.href = '/professional-dashboard.html';
+                }
+                return; // Impede a execução do resto da função
+            } catch (e) {
+                // Se o token for inválido, limpa e continua para o login
+                localStorage.clear();
+            }
         }
 
-        if (adminLoginForm) {
-            adminLoginForm.addEventListener('submit', async (event) => {
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 const email = document.getElementById('admin-email').value;
                 const password = document.getElementById('admin-password').value;
@@ -32,38 +45,42 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify({ email, password }),
                     });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.userType === 'admin') {
-                            localStorage.setItem('adminToken', data.accessToken);
-                            window.location.href = '/admin-dashboard.html'; // Redireciona!
-                        } else {
-                            alert('Este usuário não é um administrador.');
-                        }
-                    } else {
-                        alert('Credenciais de administrador inválidas.');
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Credenciais inválidas.');
                     }
+
+                    // Redirecionamento baseado no tipo de usuário
+                    if (data.userType === 'admin') {
+                        localStorage.setItem('adminToken', data.accessToken);
+                        window.location.href = '/admin-dashboard.html';
+                    } else if (data.userType === 'professional') {
+                        localStorage.setItem('professionalToken', data.accessToken);
+                        window.location.href = '/professional-dashboard.html';
+                    } else {
+                        throw new Error('Tipo de usuário desconhecido.');
+                    }
+
                 } catch (error) {
-                    console.error('Erro no login de administrador:', error);
-                    alert('Ocorreu um erro ao tentar fazer login.');
+                    console.error('Erro no login:', error);
+                    alert(error.message);
                 }
             });
         }
     }
 
-    // Lógica da PÁGINA DO PAINEL (admin-dashboard.html)
-    function handleDashboardPage() {
+    // --- LÓGICA DO PAINEL DE ADMIN (admin-dashboard.html) ---
+    function handleAdminDashboardPage() {
         const professionalsTbody = document.getElementById('professionals-table-body');
         const logoutButton = document.getElementById('logout-button');
         const adminToken = localStorage.getItem('adminToken');
 
-        // Se não tem token, volta para a página de login
         if (!adminToken) {
-            window.location.href = '/admin.html';
+            window.location.href = '/admin.html'; // Protege a página
             return;
         }
 
-        // Configura o botão de logout
         if (logoutButton) {
             logoutButton.addEventListener('click', () => {
                 localStorage.removeItem('adminToken');
@@ -71,12 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        // Se a tabela existe, carrega os profissionais
         if (professionalsTbody) {
             loadProfessionals(adminToken, professionalsTbody);
-
-            // Adiciona o listener para os botões de ação
-            professionalsTbody.addEventListener('click', async (event) => {
+            professionalsTbody.addEventListener('click', (event) => {
                  if (event.target.classList.contains('save-status-btn')) {
                     const row = event.target.closest('tr');
                     const id = row.dataset.id;
@@ -86,44 +100,62 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
+    
+    // --- LÓGICA DO PAINEL DO PROFISSIONAL (professional-dashboard.html) ---
+    function handleProfessionalDashboardPage() {
+        const logoutButton = document.getElementById('logout-button'); // Assumindo que tenha um botão de logout
+        const professionalToken = localStorage.getItem('professionalToken');
 
-    // Função para CARREGAR os profissionais via API
+        if (!professionalToken) {
+            window.location.href = '/admin.html'; // Protege a página
+            return;
+        }
+
+        if (logoutButton) {
+            logoutButton.addEventListener('click', () => {
+                localStorage.removeItem('professionalToken');
+                window.location.href = '/admin.html';
+            });
+        }
+        
+        // TODO: Adicionar aqui a lógica específica do painel do profissional
+        // Ex: Carregar pacientes, agenda, etc.
+        console.log("Painel do profissional carregado com sucesso.");
+    }
+
+    // --- Funções Auxiliares (compartilhadas pelo painel de admin) ---
+
     async function loadProfessionals(token, tbody) {
         try {
-            const timestamp = new Date().getTime(); // Cache-busting
-            const response = await fetch(`/api/admin/professionals?_t=${timestamp}`, {
+            const response = await fetch(`/api/admin/professionals`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (!response.ok) {
                 if (response.status === 401 || response.status === 403) {
-                    localStorage.removeItem('adminToken');
+                    localStorage.clear(); // Limpa todos os tokens
                     window.location.href = '/admin.html';
                 }
-                throw new Error('Sessão expirada ou inválida. Faça login novamente.');
+                throw new Error('Não foi possível carregar os profissionais.');
             }
-
             const professionals = await response.json();
             populateProfessionalsTable(professionals, tbody);
-
         } catch (error) {
             console.error('Erro ao carregar profissionais:', error);
             alert(error.message);
         }
     }
 
-    // Função para PREENCHER a tabela com os dados
     function populateProfessionalsTable(professionals, tbody) {
         tbody.innerHTML = '';
-        if (professionals.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6">Nenhum profissional pendente ou cadastrado.</td></tr>';
+        if (!professionals || professionals.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6">Nenhum profissional encontrado.</td></tr>';
             return;
         }
         
         professionals.forEach(prof => {
             const row = tbody.insertRow();
             row.dataset.id = prof.id;
-
             row.innerHTML = `
                 <td>${prof.fullName || 'N/A'}</td>
                 <td>${prof.email || 'N/A'}</td>
@@ -142,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Função para ATUALIZAR o status de um profissional
     async function updateProfessionalStatus(id, newStatus, token, tbody) {
         try {
             const response = await fetch(`/api/admin/professionals/${id}`, {
@@ -156,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 alert('Status do profissional atualizado com sucesso!');
-                loadProfessionals(token, tbody); // Recarrega a tabela
+                loadProfessionals(token, tbody);
             } else {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Falha ao atualizar o status.');
@@ -165,12 +196,5 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Erro ao atualizar status:', error);
             alert(error.message);
         }
-    }
-
-    // Executa a lógica da página atual
-    if (currentPage.includes('admin.html')) {
-        handleLoginPage();
-    } else if (currentPage.includes('admin-dashboard.html')) {
-        handleDashboardPage();
     }
 });
