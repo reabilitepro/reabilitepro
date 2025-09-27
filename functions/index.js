@@ -14,13 +14,8 @@ const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-// --- JWT Secret ---
-// It's highly recommended to use a stored secret for production
-// For example, using Firebase Functions configuration:
-// const JWT_SECRET = functions.config().jwt.secret;
-const JWT_SECRET = "your-super-secret-key-that-is-long-and-random"; // Replace with a strong, configured secret
+const JWT_SECRET = "your-super-secret-key-that-is-long-and-random";
 
-// --- Middleware for Token Verification ---
 const verifyToken = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -36,16 +31,11 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-
 // --- Admin Routes ---
-
-// Admin login and data fetch
 app.post('/getAdminData', async (req, res) => {
     const { email, password } = req.body;
-
-    // IMPORTANT: Replace with your actual admin credentials
     const ADMIN_EMAIL = "admin@reabilite.pro";
-    const ADMIN_PASSWORD = "24852230"; // In a real app, use a hashed password
+    const ADMIN_PASSWORD = "24852230";
 
     if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
         return res.status(403).json({ error: "Credenciais de administrador inválidas." });
@@ -53,15 +43,18 @@ app.post('/getAdminData', async (req, res) => {
 
     try {
         const professionalsSnapshot = await db.collection('professionals').get();
-        const professionals = await Promise.all(professionalsSnapshot.docs.map(async doc => {
-            const linkSnapshot = await db.collection('invitation_links').where('professionalId', '==', doc.id).get();
+        const professionals = professionalsSnapshot.docs.map(doc => {
+            const data = doc.data();
             return {
                 id: doc.id,
-                name: doc.data().name,
-                email: doc.data().email,
-                linkCount: linkSnapshot.size
+                name: data.name || 'N/A',
+                email: data.email || 'N/A',
+                // **CORREÇÃO DEFINITIVA NO BACKEND CORRETO**
+                registrationstatus: data.registrationstatus || 'Pendente', 
+                patientlimit: data.patientlimit || 0,
+                linkCount: 0 // Placeholder, a lógica de links pode ser adicionada depois
             };
-        }));
+        });
 
         const patientsSnapshot = await db.collection('patients').get();
         const patients = await Promise.all(patientsSnapshot.docs.map(async doc => {
@@ -85,7 +78,7 @@ app.post('/getAdminData', async (req, res) => {
     }
 });
 
-// Generate invitation links
+
 app.post('/generateInvitationLinks', async (req, res) => {
     const { professionalId, quantity } = req.body;
 
@@ -118,8 +111,6 @@ app.post('/generateInvitationLinks', async (req, res) => {
 
 
 // --- Professional Routes ---
-
-// Professional Registration
 app.post('/api/professionals', async (req, res) => {
     try {
         const { name, email, password, dob, crefito } = req.body;
@@ -132,7 +123,9 @@ app.post('/api/professionals', async (req, res) => {
             email,
             password: hashedPassword,
             dob,
-            crefito
+            crefito,
+            registrationstatus: 'Pendente', // Garante o campo na criação
+            patientlimit: 0 // Garante o campo na criação
         });
         res.status(201).json({ message: 'Profissional registrado com sucesso!', id: userRef.id });
     } catch (error) {
@@ -141,11 +134,31 @@ app.post('/api/professionals', async (req, res) => {
     }
 });
 
-// Professional Login
+// Rota de login unificada
 app.post('/api/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
-        const usersRef = db.collection('professionals');
+        const { email, password, userType } = req.body;
+        
+        let collectionName = '';
+        if (userType === 'admin') {
+             // Lógica de admin separada, não busca em coleção
+             const ADMIN_EMAIL = "admin@reabilite.pro";
+             const ADMIN_PASSWORD = "24852230"; 
+
+             if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+                 const accessToken = jwt.sign({ email: ADMIN_EMAIL, type: 'admin' }, JWT_SECRET, { expiresIn: '1h' });
+                 return res.status(200).json({ accessToken, userType: 'admin' });
+             } else {
+                 return res.status(401).json({ message: 'Credenciais de administrador inválidas.' });
+             }
+        }
+        else if (userType === 'professional') {
+            collectionName = 'professionals';
+        } else {
+            return res.status(400).json({ message: 'Tipo de usuário inválido.' });
+        }
+
+        const usersRef = db.collection(collectionName);
         const snapshot = await usersRef.where('email', '==', email).limit(1).get();
 
         if (snapshot.empty) {
@@ -160,16 +173,16 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ message: 'Email ou senha inválidos.' });
         }
 
-        const accessToken = jwt.sign({ id: userDoc.id, type: 'professional' }, JWT_SECRET, { expiresIn: '1h' });
-        res.status(200).json({ accessToken });
+        const accessToken = jwt.sign({ id: userDoc.id, type: userType }, JWT_SECRET, { expiresIn: '1h' });
+        res.status(200).json({ accessToken, userType });
+
     } catch (error) {
-        console.error("Error logging in professional:", error);
+        console.error(`Error logging in ${req.body.userType}:`, error);
         res.status(500).json({ message: 'Erro interno do servidor.' });
     }
 });
 
 
-// Professional Dashboard
 app.get('/api/dashboard', verifyToken, async (req, res) => {
     if (req.user.type !== 'professional') {
         return res.status(403).send('Acesso negado.');
@@ -198,8 +211,6 @@ app.get('/api/dashboard', verifyToken, async (req, res) => {
 });
 
 // --- Patient Routes ---
-
-// Patient Login
 app.post('/api/patient/login', async (req, res) => {
      try {
         const { phone } = req.body;
@@ -220,7 +231,7 @@ app.post('/api/patient/login', async (req, res) => {
     }
 });
 
-// Patient Dashboard
+
 app.get('/api/patient/dashboard', verifyToken, async (req, res) => {
      if (req.user.type !== 'patient') {
         return res.status(403).send('Acesso negado.');
@@ -238,5 +249,4 @@ app.get('/api/patient/dashboard', verifyToken, async (req, res) => {
 });
 
 
-// Expose the Express app as a single Cloud Function named 'api'
 exports.api = functions.https.onRequest(app);

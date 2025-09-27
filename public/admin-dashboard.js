@@ -3,27 +3,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPage = window.location.pathname;
 
     // 1. Proteção da Página de Administrador
-    // Se não há token de admin e estamos na página do admin, expulsa para o login.
     if (!adminToken && currentPage.includes('admin-dashboard.html')) {
         window.location.href = '/admin.html';
         return;
     }
 
-    // Se há um token de admin, mas o usuário está na página de login, redireciona para o dashboard.
-    if (adminToken && !currentPage.includes('admin-dashboard.html')) {
+    if (adminToken && (currentPage.includes('admin.html') || currentPage === '/')) {
         window.location.href = '/admin-dashboard.html';
         return;
     }
 
     // --- Inicialização da Lógica Específica ---
-
-    // Só executa o código do painel se estivermos na página correta
     if (currentPage.includes('admin-dashboard.html')) {
         handleAdminDashboardPage();
     }
     
-    // Só executa a lógica de login na página de login
-    if (currentPage.includes('admin.html') || currentPage.endsWith('/')) {
+    if (currentPage.includes('admin.html')) {
         handleLoginPage();
     }
 
@@ -37,10 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const password = document.getElementById('admin-password').value;
 
                 try {
+                    // A rota de login é a mesma, mas o frontend redireciona com base no sucesso
                     const response = await fetch('/api/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password }),
+                        body: JSON.stringify({ email, password, userType: 'admin' }),
                     });
 
                     const data = await response.json();
@@ -49,16 +45,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error(data.message || 'Credenciais inválidas.');
                     }
 
-                    // O backend agora decide o tipo. O frontend apenas armazena o token correto.
+                    // Apenas armazena o token de admin e redireciona
                     if (data.userType === 'admin') {
                         localStorage.setItem('adminToken', data.accessToken);
                         window.location.href = '/admin-dashboard.html';
-                    } else if (data.userType === 'professional') {
-                        localStorage.setItem('professionalToken', data.accessToken);
-                        window.location.href = '/professional-dashboard.html';
+                    } else {
+                        // Caso a API retorne um tipo diferente por engano
+                        throw new Error('Acesso de administrador negado.');
                     }
                 } catch (error) {
-                    alert(error.message);
+                    alert('Erro no login: ' + error.message);
                 }
             });
         }
@@ -97,12 +93,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (!response.ok) { throw new Error('Falha ao carregar dados.'); }
+            if (!response.ok) { 
+                const errorText = await response.text();
+                throw new Error(`Falha ao carregar dados: ${response.status} ${errorText}`); 
+            }
 
             const professionals = await response.json();
             populateProfessionalsTable(professionals, tbody);
         } catch (error) {
-            console.error('Erro ao carregar profissionais:', error); // Usa console.error para não travar o usuário
+            console.error('Erro detalhado ao carregar profissionais:', error);
             alert(error.message);
         }
     }
@@ -110,24 +109,33 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateProfessionalsTable(professionals, tbody) {
         tbody.innerHTML = '';
         if (!professionals || professionals.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6">Nenhum profissional encontrado.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5">Nenhum profissional encontrado.</td></tr>';
             return;
         }
         
         professionals.forEach(prof => {
+            if (!prof) return; 
+
             const row = tbody.insertRow();
             row.dataset.id = prof.id;
+
+            // **CORREÇÃO DEFINITIVA E FINAL**
+            const status = prof.registrationstatus || prof.registrationStatus || 'Pendente';
+            const statusClass = String(status).toLowerCase(); // Garante que é uma string
+            const patientLimit = prof.patientlimit ?? 'N/A';
+            const name = prof.name || prof.fullname || 'N/A';
+            const email = prof.email || 'N/A';
+
             row.innerHTML = `
-                <td>${prof.fullname || 'N/A'}</td>
-                <td>${prof.email || 'N/A'}</td>
-                <td>${prof.profession || 'N/A'}</td>
-                <td>${prof.registrationnumber || 'N/A'}</td>
-                <td><span class="status status-${(prof.registrationstatus || 'pendente').toLowerCase()}">${prof.registrationstatus}</span></td>
+                <td>${name}</td>
+                <td>${email}</td>
+                <td><span class="status status-${statusClass}">${status}</span></td>
+                <td>${patientLimit}</td>
                 <td class="actions">
                     <select class="status-select">
-                        <option value="Pendente" ${prof.registrationstatus === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                        <option value="Aprovado" ${prof.registrationstatus === 'Aprovado' ? 'selected' : ''}>Aprovado</option>
-                        <option value="Rejeitado" ${prof.registrationstatus === 'Rejeitado' ? 'selected' : ''}>Rejeitado</option>
+                        <option value="Pendente" ${status === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                        <option value="Aprovado" ${status === 'Aprovado' ? 'selected' : ''}>Aprovado</option>
+                        <option value="Rejeitado" ${status === 'Rejeitado' ? 'selected' : ''}>Rejeitado</option>
                     </select>
                     <button class="save-status-btn">Salvar</button>
                 </td>
@@ -150,10 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Status atualizado com sucesso!');
                 loadProfessionals(token, tbody);
             } else {
-                throw new Error((await response.json()).message || 'Falha ao atualizar.');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Falha ao atualizar.');
             }
         } catch (error) {
-            alert(error.message);
+            alert('Erro ao atualizar status: ' + error.message);
         }
     }
 });
