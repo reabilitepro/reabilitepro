@@ -162,7 +162,9 @@ app.get('/api/admin/professionals', authenticateAdmin, async (req, res) => {
     let client;
     try {
         client = await pool.connect();
-        const result = await client.query('SELECT id, fullName, email, registrationStatus, "patientLimit" FROM professionals ORDER BY id');
+        // CORREÇÃO: Removida a coluna "patientLimit". Adicionadas as colunas que o frontend espera.
+        const query = 'SELECT id, "fullName", email, profession, "registrationNumber" AS "professionalLicense", "registrationStatus" FROM professionals ORDER BY "registrationStatus" ASC, id DESC';
+        const result = await client.query(query);
         res.json(result.rows);
     } catch (error) {
         console.error('Erro ao buscar profissionais:', error);
@@ -174,34 +176,18 @@ app.get('/api/admin/professionals', authenticateAdmin, async (req, res) => {
 
 app.put('/api/admin/professionals/:id', authenticateAdmin, async (req, res) => {
     const { id } = req.params;
-    const { registrationStatus, patientLimit } = req.body;
+    // CORREÇÃO: Apenas o `registrationStatus` é esperado do body.
+    const { registrationStatus } = req.body;
 
-    if (!registrationStatus && patientLimit === undefined) {
-        return res.status(400).json({ message: 'Nenhuma ação especificada.' });
+    if (!registrationStatus) {
+        return res.status(400).json({ message: 'O novo status de registro é obrigatório.' });
     }
 
     let client;
     try {
         client = await pool.connect();
-        const updates = [];
-        const values = [];
-        let queryIndex = 1;
-
-        if (registrationStatus) {
-            updates.push(`registrationStatus = $${queryIndex++}`);
-            values.push(registrationStatus);
-        }
-        if (patientLimit !== undefined) {
-            updates.push(`"patientLimit" = $${queryIndex++}`);
-            values.push(patientLimit);
-        }
-
-        if (updates.length === 0) {
-            return res.status(400).json({ message: 'Nenhum campo válido para atualização.' });
-        }
-
-        values.push(id);
-        const query = `UPDATE professionals SET ${updates.join(', ')} WHERE id = $${queryIndex} RETURNING *`;
+        const values = [registrationStatus, id];
+        const query = `UPDATE professionals SET "registrationStatus" = $1 WHERE id = $2 RETURNING *`;
         
         const result = await client.query(query, values);
 
@@ -228,4 +214,3 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
-// Comentário para forçar a detecção de mudança no arquivo.
