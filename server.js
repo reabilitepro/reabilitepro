@@ -268,16 +268,9 @@ app.post('/api/ai/command', authenticateToken, async (req, res) => {
 
     // SIMULAÇÃO: No futuro, aqui chamaremos a lógica real da IA.
     // Por enquanto, apenas devolvemos uma resposta de confirmação.
-    const aiResponse = `Recebi seu comando: "${command}". Estou processando a resposta e logo ela aparecerá aqui.`;
+    const aiResponse = `Recebi seu comando: \"${command}\". Estou processando a resposta e logo ela aparecerá aqui.`;
 
     res.json({ reply: aiResponse });
-});
-
-
-// --- ROTA CATCH-ALL (DEVE SER A ÚLTIMA) ---
-// Serve a página de login para qualquer rota não correspondida pela API ou arquivos estáticos.
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 // --- INICIALIZAÇÃO DO SERVIDOR ---
