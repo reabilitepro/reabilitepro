@@ -296,12 +296,19 @@ app.post('/api/ai/command', authenticateToken, async (req, res) => {
     res.json({ reply: aiResponse });
 });
 
+// --- GESTÃO DE ROTAS NÃO ENCONTRADAS (DEVE VIR NO FINAL) ---
 
-// --- ROTA CATCH-ALL (DEVE SER A ÚLTIMA) ---
-// Serve a página de login para qualquer rota não correspondida pela API ou arquivos estáticos.
+// Middleware para capturar chamadas de API não encontradas e retornar um JSON 404
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ message: 'Endpoint da API não encontrado.' });
+});
+
+// Middleware para servir a aplicação React ou a página principal para qualquer outra rota
+// Isso garante que o roteamento do lado do cliente funcione corretamente.
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
+
 
 // --- INICIALIZAÇÃO DO SERVIDOR ---
 const startServer = async () => {
