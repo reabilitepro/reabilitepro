@@ -104,7 +104,7 @@ const createTables = async () => {
 };
 
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // --- MIDDLEWARE DE AUTENTICAÇÃO ---
 const authenticateToken = (req, res, next) => {
@@ -285,14 +285,13 @@ app.put('/api/admin/professionals/:id', authenticateToken, async (req, res) => {
 });
 
 // --- GESTÃO DE ROTAS NÃO ENCONTRADAS ---
-app.use('/api/*', (req, res) => {
-    res.status(404).json({ message: 'Endpoint da API não encontrado.' });
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ message: 'Endpoint da API não encontrado.' });
+  }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
 
 // --- INICIALIZAÇÃO DO SERVIDOR ---
 const startServer = async () => {

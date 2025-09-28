@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- META TAGS PARA DESATIVAR O CACHE -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
     <meta name="theme-color" content="#007bff"/>
     <link rel="manifest" href="/manifest.json">
     <title>Painel de Administração - Reabilite Pro</title>
@@ -13,7 +18,7 @@
     <header>
         <img src="/logo.png" alt="Reabilite Pro Logo" class="logo">
         <h1>Reabilite Pro</h1>
-        <h2>Painel de Administração</h2>
+        <h2 id="header-title">Painel de Administração</h2>
     </header>
 
     <main>
@@ -30,6 +35,7 @@
         </div>
 
         <div id="admin-dashboard" style="display: none;">
+            <button id="logout-button" class="button-logout" style="position: absolute; top: 20px; right: 20px;">Sair</button>
             <div class="admin-section">
                 <h3>Profissionais</h3>
                 <table id="professionals-table">
@@ -63,14 +69,24 @@
         </div>
     </main>
 
-    <script src="admin.js"></script>
+    <!-- CACHE BUSTING AGRESSIVO -->
+    <script src="admin.js?v=999999"></script> 
+
+    <!-- SCRIPT PARA ANULAR O SERVICE WORKER ANTIGO -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }, err => {
-            console.log('ServiceWorker registration failed: ', err);
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
+            console.log('Service workers antigos foram removidos.');
+          }).then(() => {
+              navigator.serviceWorker.register('/sw.js').then(registration => {
+                console.log('Novo ServiceWorker registado com sucesso: ', registration.scope);
+              }, err => {
+                console.log('Falha ao registar novo ServiceWorker: ', err);
+              });
           });
         });
       }
