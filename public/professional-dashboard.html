@@ -12,45 +12,54 @@
 <body>
     <header>
         <img src="/logo.png" alt="Reabilite Pro Logo" class="logo">
-        <div class="header-content">
-            <h1>Reabilite Pro</h1>
-            <button id="logout-button" class="button-logout">Sair</button>
-        </div>
+        <h1>Reabilite Pro</h1>
     </header>
 
     <main>
-        <h2 id="welcome-message">Painel do Profissional</h2>
-        
-        <div class="dashboard-section">
-            <h3>Gerar Link de Convite para Paciente</h3>
-            <p>Clique no botão para gerar um link de uso único. Você tem um limite de pacientes que pode cadastrar.</p>
-            <!-- Botão que o nosso JavaScript irá controlar -->
-            <button id="generate-link-btn" class="button-primary">Gerar e Copiar Novo Link do Paciente</button>
+        <div id="login-container">
+            <h3>Login do Profissional</h3>
+            <form id="professional-login-form">
+                <label for="professional-email">Email:</label>
+                <input type="email" id="professional-email" required>
+                <label for="professional-password">Senha:</label>
+                <input type="password" id="professional-password" required>
+                <button type="submit">Entrar</button>
+            </form>
+            <a href="/" class="back-link">Voltar à Página Inicial</a>
         </div>
 
-        <div class="dashboard-section">
-            <h3>Seus Pacientes</h3>
-            <table id="patients-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nome</th>
-                        <th>Telefone</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="patients-table-body">
-                    <!-- A lista de pacientes será preenchida aqui pelo JS -->
-                    <tr>
-                        <td colspan="4" style="text-align: center;">Carregando...</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div id="dashboard-container" style="display: none;">
+            <div class="header-content">
+                <h2 id="welcome-message">Painel do Profissional</h2>
+                <button id="logout-button" class="button-logout">Sair</button>
+            </div>
+            <div class="dashboard-section">
+                <h3>Gerar Link de Convite para Paciente</h3>
+                <p>Clique no botão para gerar um link de uso único. Você tem um limite de pacientes que pode cadastrar.</p>
+                <button id="generate-link-btn" class="button-primary">Gerar e Copiar Novo Link do Paciente</button>
+            </div>
+            <div class="dashboard-section">
+                <h3>Seus Pacientes</h3>
+                <table id="patients-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="patients-table-body">
+                        <tr>
+                            <td colspan="4" style="text-align: center;">Carregando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 
-    <!-- Carrega o script que controla a página -->
-    <script src="/professional-dashboard.js?v=1.2"></script>
+    <script src="/professional-dashboard.js?v=1.3"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
