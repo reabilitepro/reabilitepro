@@ -93,13 +93,11 @@ const authenticateToken = (req, res, next) => {
 // ROTA DE LOGIN UNIFICADA
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
-    // Login do Admin (credenciais hardcoded, conforme solicitado)
     if (email === 'admin@reabilite.pro' && password === 'admin123') {
         const token = jwt.sign({ type: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
         return res.json({ accessToken: token, userType: 'admin' });
     }
 
-    // Login do Profissional
     try {
         const result = await pool.query('SELECT * FROM professionals WHERE email = $1', [email]);
         if (result.rows.length === 0) {
@@ -212,9 +210,9 @@ app.get('/api/admin/data', authenticateToken, async (req, res) => {
         return res.status(403).json({ message: 'Acesso negado' });
     }
     try {
-        const professionals = await pool.query('SELECT id, fullname, email, profession, registrationnumber, registrationstatus, patientlimit FROM professionals ORDER BY id');
-        const patients = await pool.query('SELECT p.id, p.name, p.phone, pr.fullname as professional_name FROM patients p LEFT JOIN professionals pr ON p.professional_id = pr.id ORDER BY p.id');
-        res.json({ professionals: professionals.rows, patients: patients.rows });
+        const professionalsResult = await pool.query('SELECT id, fullname, email, profession, registrationnumber, registrationstatus, patientlimit FROM professionals ORDER BY id');
+        const patientsResult = await pool.query('SELECT p.id, p.name, p.phone, pr.fullname as professional_name FROM patients p LEFT JOIN professionals pr ON p.professional_id = pr.id ORDER BY p.id');
+        res.json({ professionals: professionalsResult.rows, patients: patientsResult.rows });
     } catch (error) {
         console.error('Erro ao buscar dados de admin:', error);
         res.status(500).json({ message: 'Erro interno do servidor ao buscar dados de admin.' });
@@ -256,13 +254,11 @@ app.put('/api/admin/professionals/:id', authenticateToken, async (req, res) => {
 });
 
 // --- GESTÃO DE ROTAS NÃO ENCONTRADAS ---
-// Middleware para capturar chamadas de API não encontradas
 app.use('/api/*', (req, res) => {
     res.status(404).json({ message: 'Endpoint da API não encontrado.' });
 });
 
-// CORREÇÃO: Middleware para servir a página principal para qualquer outra rota
-// Isso garante que o roteamento do lado do cliente funcione corretamente a partir do index.html
+
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
