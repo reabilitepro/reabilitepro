@@ -23,6 +23,24 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
+// --- FUNÇÃO DE MIGRAÇÃO PARA REPARAR O BANCO DE DADOS ---
+const runMigrations = async () => {
+    const client = await pool.connect();
+    try {
+        // Adiciona a coluna 'name' na tabela 'patients' se ela não existir.
+        // Isto corrige um erro de deploys antigos onde a tabela foi criada sem esta coluna.
+        await client.query(`
+            ALTER TABLE patients ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+        `);
+        console.log("Migração do banco de dados concluída: Coluna 'name' em 'patients' verificada/adicionada.");
+    } catch (error) {
+        console.error("Erro crítico durante a migração do banco de dados:", error);
+        process.exit(1); // Encerra se a migração falhar
+    } finally {
+        client.release();
+    }
+};
+
 // --- FUNÇÃO DE INICIALIZAÇÃO ROBUSTA DO BANCO DE DADOS ---
 const createTables = async () => {
     const client = await pool.connect();
@@ -66,7 +84,7 @@ const createTables = async () => {
         console.log("Estrutura do banco de dados (tabelas) verificada e garantida com sucesso.");
     } catch (error) {
         console.error("Erro crítico ao criar/verificar as tabelas:", error);
-        process.exit(1); // Encerra se a estrutura básica do DB não puder ser garantida
+        process.exit(1);
     } finally {
         client.release();
     }
@@ -265,7 +283,8 @@ app.get('*', (req, res) => {
 
 // --- INICIALIZAÇÃO DO SERVIDOR ---
 const startServer = async () => {
-    await createTables(); // Garante que a estrutura do DB esteja pronta
+    await runMigrations(); // PRIMEIRO, repara a estrutura do DB
+    await createTables();  // DEPOIS, garante que as tabelas existem
     app.listen(PORT, () => {
         console.log(`Servidor rodando na porta ${PORT}`);
     });
