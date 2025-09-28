@@ -37,6 +37,7 @@
                 <h3>Gerar Link de Convite para Paciente</h3>
                 <p>Clique no botão para gerar um link de uso único. Você tem um limite de pacientes que pode cadastrar.</p>
                 <button id="generate-link-btn" class="button-primary">Gerar e Copiar Novo Link do Paciente</button>
+                <input type="text" id="invitation-link" placeholder="O seu link de convite aparecerá aqui..." readonly class="invitation-link-input">
             </div>
             <div class="dashboard-section">
                 <h3>Seus Pacientes</h3>
@@ -59,7 +60,7 @@
         </div>
     </main>
 
-    <script src="/professional-dashboard.js?v=1.3"></script>
+    <script src="/professional-dashboard.js?v=1.4"></script> <!-- Cache-busting version increment -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
