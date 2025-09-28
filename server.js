@@ -23,16 +23,28 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// --- FUNÇÃO DE MIGRAÇÃO PARA REPARAR O BANCO DE DADOS ---
+// --- FUNÇÃO DE MIGRAÇÃO ROBUSTA PARA REPARAR O BANCO DE DADOS ---
 const runMigrations = async () => {
     const client = await pool.connect();
     try {
-        // Adiciona a coluna 'name' na tabela 'patients' se ela não existir.
-        // Isto corrige um erro de deploys antigos onde a tabela foi criada sem esta coluna.
-        await client.query(`
-            ALTER TABLE patients ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+        // VERIFICAÇÃO EXPLÍCITA: A coluna 'name' existe em 'patients'?
+        const columnCheck = await client.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'patients' 
+            AND column_name = 'name';
         `);
-        console.log("Migração do banco de dados concluída: Coluna 'name' em 'patients' verificada/adicionada.");
+
+        // Se a consulta não retornar linhas, a coluna não existe.
+        if (columnCheck.rows.length === 0) {
+            console.log("MIGRAÇÃO NECESSÁRIA: A coluna 'name' não foi encontrada na tabela 'patients'. Adicionando...");
+            // Adiciona a coluna. Ela será populada com NULLs para as linhas existentes.
+            await client.query('ALTER TABLE patients ADD COLUMN name VARCHAR(255);');
+            console.log("MIGRAÇÃO CONCLUÍDA: A coluna 'name' foi adicionada com sucesso à tabela 'patients'.");
+        } else {
+            console.log("Migração não necessária: A coluna 'name' já existe na tabela 'patients'.");
+        }
     } catch (error) {
         console.error("Erro crítico durante a migração do banco de dados:", error);
         process.exit(1); // Encerra se a migração falhar
@@ -41,7 +53,8 @@ const runMigrations = async () => {
     }
 };
 
-// --- FUNÇÃO DE INICIALIZAÇÃO ROBUSTA DO BANCO DE DADOS ---
+
+// --- FUNÇÃO DE INICIALIZAÇÃO DE TABELAS ---
 const createTables = async () => {
     const client = await pool.connect();
     try {
