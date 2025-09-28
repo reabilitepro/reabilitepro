@@ -284,12 +284,20 @@ app.put('/api/admin/professionals/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// --- GESTÃO DE ROTAS NÃO ENCONTRADAS ---
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ message: 'Endpoint da API não encontrado.' });
-  }
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// --- GESTÃO DE ROTAS DE PÁGINA ---
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Catch-all para outras rotas - serve o index.html (bom para SPAs)
+app.get('*', (req, res) => {
+    // Verifica se o pedido NÃO começa com /api para não interferir com a API
+    if (!req.path.startsWith('/api/')) {
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    } else {
+        // Se for uma rota de API não encontrada, envia 404
+        res.status(404).json({ message: 'Endpoint da API não encontrado.' });
+    }
 });
 
 
