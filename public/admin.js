@@ -1,5 +1,5 @@
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Mapeamento dos elementos da página
     const loginContainer = document.getElementById('login-container');
     const dashboardContainer = document.getElementById('admin-dashboard');
     const loginForm = document.getElementById('admin-login-form');
@@ -7,33 +7,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const professionalsTbody = document.querySelector('#professionals-table tbody');
     const patientsTbody = document.querySelector('#patients-table tbody');
 
-    // --- Funções de Controlo de Visibilidade ---
+    // --- Funções de Gestão de Estado e Visibilidade ---
 
-    // Mostra o painel de administração e carrega os dados
-    function showDashboard() {
+    function showDashboard(pushState = false) {
         loginContainer.style.display = 'none';
         dashboardContainer.style.display = 'block';
+
+        if (pushState) {
+            history.pushState({ loggedIn: true }, 'Admin Dashboard', '/admin');
+        }
+
         const adminToken = localStorage.getItem('adminToken');
         if (adminToken) {
             loadAdminData(adminToken);
         } else {
-            // Se, por algum motivo, não houver token, volta para o login
-            showLogin();
+            showLogin(true); // Se não houver token, força o ecrã de login e atualiza o histórico
         }
     }
 
-    // Mostra a página de login e limpa o token
-    function showLogin() {
+    function showLogin(replaceState = false) {
         localStorage.removeItem('adminToken');
         loginContainer.style.display = 'block';
         dashboardContainer.style.display = 'none';
-        if(professionalsTbody) professionalsTbody.innerHTML = ''; // Limpa tabelas ao sair
-        if(patientsTbody) patientsTbody.innerHTML = '';
+        if (professionalsTbody) professionalsTbody.innerHTML = '';
+        if (patientsTbody) patientsTbody.innerHTML = '';
+
+        if (replaceState) {
+            history.replaceState({ loggedIn: false }, 'Admin Login', '/admin');
+        }
     }
 
     // --- Lógica Principal e Eventos ---
 
-    // Evento de submissão do formulário de login
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const email = document.getElementById('admin-email').value;
@@ -50,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.userType === 'admin') {
                 localStorage.setItem('adminToken', data.accessToken);
-                showDashboard(); // **CORREÇÃO: Mostra o painel em vez de redirecionar**
+                showDashboard(true); // Mostra o painel e adiciona um estado ao histórico
             } else {
                 throw new Error('Acesso de administrador negado.');
             }
@@ -59,12 +64,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Evento do botão de logout
     if (logoutButton) {
-        logoutButton.addEventListener('click', showLogin);
+        logoutButton.addEventListener('click', () => showLogin(true));
     }
-    
-    // Evento para salvar o status do profissional (delegação de evento)
+
+    window.addEventListener('popstate', () => {
+        if (localStorage.getItem('adminToken')) {
+            showDashboard();
+        } else {
+            showLogin();
+        }
+    });
+
+    // ... (O restante do código, como as funções de API, permanece o mesmo)
     if (professionalsTbody) {
         professionalsTbody.addEventListener('click', (event) => {
             if (event.target.classList.contains('save-status-btn')) {
@@ -77,16 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Funções de Manipulação de Dados (API) ---
-
-    // Carrega os dados de profissionais e pacientes
     async function loadAdminData(token) {
         try {
             const response = await fetch('/api/admin/data', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) {
-                 // Se o token for inválido, o servidor retornará 401 ou 403
                 if (response.status === 401 || response.status === 403) {
                     throw new Error('Sessão inválida ou expirada. Por favor, faça login novamente.');
                 }
@@ -97,11 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
             populateTable(patientsTbody, patients, createPatientRow);
         } catch (error) {
             alert(error.message);
-            showLogin(); // Se houver erro (ex: token expirado), força o logout
+            showLogin(true);
         }
     }
     
-    // Atualiza o status de um profissional
     async function updateProfessionalStatus(id, newStatus, token, callback) {
         try {
             const response = await fetch(`/api/admin/professionals/${id}`, {
@@ -120,9 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Funções Auxiliares para Renderização ---
-
-    // Preenche uma tabela com dados
     function populateTable(tbody, data, createRowFunction) {
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -136,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Cria uma linha <tr> para a tabela de profissionais
     function createProfessionalRow(prof) {
         const row = document.createElement('tr');
         row.dataset.id = prof.id;
@@ -158,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return row;
     }
 
-    // Cria uma linha <tr> para a tabela de pacientes
     function createPatientRow(patient) {
         const row = document.createElement('tr');
         row.dataset.id = patient.id;
@@ -172,9 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Ponto de Entrada ---
-    // Verifica o estado inicial (logado ou não) ao carregar a página
     if (localStorage.getItem('adminToken')) {
-        showDashboard();
+        showDashboard(true);
     } else {
         showLogin();
     }
