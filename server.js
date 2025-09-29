@@ -21,32 +21,42 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// Função para resetar a senha do admin
-const resetAdminPassword = async () => {
+// Função para garantir que o usuário admin exista com a senha correta
+const ensureAdminUser = async () => {
     const adminEmail = process.env.ADMIN_EMAIL;
-    const newAdminPassword = 'admin123'; // A senha que queremos definir
+    const adminPassword = 'admin123';
+    const adminFullName = 'Administrador';
+    const adminProfession = 'Admin';
 
     if (!adminEmail) {
-        console.log('Variável ADMIN_EMAIL não definida, pulando o reset de senha do admin.');
+        console.log('Variável ADMIN_EMAIL não definida, pulando a criação/atualização do admin.');
         return;
     }
 
+    const client = await pool.connect();
     try {
-        const client = await pool.connect();
-        // Verifica se o usuário admin existe
-        const userCheck = await client.query('SELECT * FROM professionals WHERE email = $1', [adminEmail]);
-        if (userCheck.rows.length > 0) {
-            // Criptografa a nova senha
-            const hashedNewPassword = await bcrypt.hash(newAdminPassword, 10);
-            // Atualiza a senha no banco de dados
-            await client.query('UPDATE professionals SET password = $1 WHERE email = $2', [hashedNewPassword, adminEmail]);
-            console.log(`Senha do administrador (${adminEmail}) foi resetada com sucesso.`);
+        const { rows } = await client.query('SELECT id FROM professionals WHERE email = $1', [adminEmail]);
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+        if (rows.length > 0) {
+            // Admin existe, então ATUALIZA a senha e o status para garantir o acesso
+            await client.query(
+                'UPDATE professionals SET password = $1, registrationstatus = $2 WHERE email = $3',
+                [hashedPassword, 'Aprovado', adminEmail]
+            );
+            console.log(`Usuário administrador (${adminEmail}) existente teve a senha atualizada e status garantido como 'Aprovado'.`);
         } else {
-            console.log(`Usuário administrador (${adminEmail}) não encontrado no banco de dados. Nenhum reset de senha foi feito.`);
+            // Admin NÃO existe, então CRIA o usuário do zero
+            await client.query(
+                'INSERT INTO professionals (fullname, email, password, profession, registrationnumber, registrationstatus) VALUES ($1, $2, $3, $4, $5, $6)',
+                [adminFullName, adminEmail, hashedPassword, adminProfession, 'N/A', 'Aprovado']
+            );
+            console.log(`Usuário administrador (${adminEmail}) foi criado com sucesso com status 'Aprovado'.`);
         }
-        client.release();
     } catch (error) {
-        console.error('Erro ao tentar resetar a senha do administrador:', error);
+        console.error('Erro crítico ao garantir a existência do usuário administrador:', error);
+    } finally {
+        client.release();
     }
 };
 
@@ -275,7 +285,7 @@ app.get('*', (req, res) => {
 
 const startServer = async () => {
     await createTables();
-    await resetAdminPassword(); // <-- Adicionado o reset da senha do admin
+    await ensureAdminUser(); // <-- Lógica à prova de falhas para garantir o admin
     app.listen(PORT, () => console.log(`Servidor a correr na porta ${PORT}`));
 };
 
