@@ -93,20 +93,37 @@ const authenticateToken = (req, res, next) => {
 app.post('/api/login', async (req, res) => {
     const { email, password, userType } = req.body;
 
-    let table, idField, nameField;
+    // Admin login check
+    if (email === process.env.ADMIN_EMAIL) {
+        try {
+            const result = await pool.query('SELECT * FROM professionals WHERE email = $1', [email]);
+            if (result.rows.length === 0) {
+                return res.status(401).json({ message: 'Credenciais de administrador inválidas.' });
+            }
+            
+            const adminUser = result.rows[0];
+            const passwordMatch = await bcrypt.compare(password, adminUser.password);
+
+            if (passwordMatch) {
+                const token = jwt.sign({ id: adminUser.id, type: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
+                return res.json({ accessToken: token, userType: 'admin' });
+            } else {
+                return res.status(401).json({ message: 'Credenciais de administrador inválidas.' });
+            }
+        } catch (error) {
+            console.error('Erro no login de admin:', error);
+            return res.status(500).json({ message: 'Erro interno do servidor.' });
+        }
+    }
+
+    // Professional & Patient login logic
+    let table;
     if (userType === 'professional') {
         table = 'professionals';
-        idField = 'id';
-        nameField = 'fullname';
     } else if (userType === 'patient') {
         table = 'patients';
-        idField = 'id';
-        nameField = 'name';
-    } else if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-        const token = jwt.sign({ type: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
-        return res.json({ accessToken: token, userType: 'admin' });
     } else {
-        return res.status(400).json({ message: "Tipo de usuário inválido" });
+        return res.status(400).json({ message: "Tipo de usuário inválido para este email." });
     }
 
     try {
@@ -121,6 +138,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(403).json({ message: `Sua conta está: ${user.registrationstatus}` });
         }
 
+        const idField = 'id';
         const token = jwt.sign({ id: user[idField], type: userType }, JWT_SECRET, { expiresIn: '8h' });
         res.json({ accessToken: token, userType });
 
@@ -129,6 +147,7 @@ app.post('/api/login', async (req, res) => {
         res.status(500).json({ message: 'Erro interno do servidor.' });
     }
 });
+
 
 app.post('/api/professionals', async (req, res) => {
     const { fullName, email, password, profession, registrationNumber } = req.body;
