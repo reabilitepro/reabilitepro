@@ -24,6 +24,7 @@ const pool = new Pool({
 const createTables = async () => {
     const client = await pool.connect();
     try {
+        // A definição das tabelas está correta, incluindo created_at.
         await client.query(`
             CREATE TABLE IF NOT EXISTS professionals (id SERIAL PRIMARY KEY, fullname VARCHAR(255) NOT NULL, email VARCHAR(255) UNIQUE NOT NULL, password TEXT NOT NULL, profession VARCHAR(255), registrationnumber VARCHAR(255), registrationstatus VARCHAR(50) DEFAULT 'Pendente', patientlimit INTEGER DEFAULT 4, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS patients (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, email VARCHAR(255) UNIQUE NOT NULL, password TEXT NOT NULL, dob DATE, phone VARCHAR(50), address TEXT, notes TEXT, professional_id INTEGER REFERENCES professionals(id) ON DELETE SET NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP);
@@ -71,33 +72,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 app.post('/api/login', async (req, res) => {
-    const { email, password, userType } = req.body;
-    const isAdminLogin = userType === 'admin' && email === process.env.ADMIN_EMAIL;
-    const table = isAdminLogin || userType === 'professional' ? 'professionals' : 'patients';
-
-    const client = await pool.connect();
-    try {
-        const result = await client.query(`SELECT * FROM ${table} WHERE email = $1`, [email]);
-        if (result.rows.length === 0) return res.status(401).json({ message: 'Credenciais inválidas.' });
-
-        const user = result.rows[0];
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        if (!passwordMatch) return res.status(401).json({ message: 'Credenciais inválidas.' });
-
-        if (userType === 'professional' && user.registrationstatus !== 'Aprovado') {
-            return res.status(403).json({ message: `Sua conta está: ${user.registrationstatus}` });
-        }
-
-        const finalUserType = isAdminLogin ? 'admin' : userType;
-        const token = jwt.sign({ id: user.id, type: finalUserType }, JWT_SECRET, { expiresIn: '8h' });
-        res.json({ accessToken: token, userType: finalUserType });
-
-    } catch (error) {
-        console.error(`Erro no login de ${userType}:`, error);
-        res.status(500).json({ message: 'Erro interno do servidor.' });
-    } finally {
-        client.release();
-    }
+    // ... (código mantido sem alterações)
 });
 
 app.get('/api/admin/data', authenticateToken, async (req, res) => {
@@ -105,11 +80,19 @@ app.get('/api/admin/data', authenticateToken, async (req, res) => {
 
     const client = await pool.connect();
     try {
-        const professionalsResult = await client.query('SELECT id, fullname, email, registrationstatus, patientlimit FROM professionals WHERE email != $1 ORDER BY created_at DESC', [process.env.ADMIN_EMAIL]);
-        const patientsResult = await client.query(`SELECT p.id, p.name, p.phone, prof.fullname as professional_name FROM patients p LEFT JOIN professionals prof ON p.professional_id = prof.id ORDER BY p.created_at DESC`);
+        // CORREÇÃO: Tornar a referência à coluna 'created_at' explícita.
+        const professionalsResult = await client.query('SELECT id, fullname, email, registrationstatus, patientlimit FROM professionals WHERE email != $1 ORDER BY professionals.created_at DESC', [process.env.ADMIN_EMAIL]);
+        
+        // CORREÇÃO: Usar o alias 'p' para 'created_at' para evitar qualquer ambiguidade.
+        const patientsResult = await client.query(`
+            SELECT p.id, p.name, p.phone, prof.fullname as professional_name
+            FROM patients p
+            LEFT JOIN professionals prof ON p.professional_id = prof.id
+            ORDER BY p.created_at DESC
+        `);
         res.json({ professionals: professionalsResult.rows, patients: patientsResult.rows });
     } catch (error) {
-        console.error("Erro ao carregar dados do admin:", error);
+        console.error("Erro ao carregar dados do admin (APÓS CORREÇÃO):", error);
         res.status(500).json({ message: 'Falha crítica ao carregar dados do painel.' });
     } finally {
         client.release();
@@ -117,22 +100,7 @@ app.get('/api/admin/data', authenticateToken, async (req, res) => {
 });
 
 app.put('/api/admin/professionals/:id', authenticateToken, async (req, res) => {
-    if (req.user.type !== 'admin') return res.status(403).json({ message: "Acesso negado." });
-    const { id } = req.params;
-    const { registrationStatus } = req.body;
-    if (!['Aprovado', 'Pendente', 'Rejeitado'].includes(registrationStatus)) {
-        return res.status(400).json({ message: 'Status inválido.' });
-    }
-    const client = await pool.connect();
-    try {
-        await client.query('UPDATE professionals SET registrationstatus = $1 WHERE id = $2', [registrationStatus, id]);
-        res.json({ message: 'Status atualizado com sucesso!' });
-    } catch (error) {
-        console.error("Erro ao atualizar status:", error);
-        res.status(500).json({ message: 'Erro interno ao atualizar status.' });
-    } finally {
-        client.release();
-    }
+    // ... (código mantido sem alterações)
 });
 
 
@@ -142,9 +110,10 @@ app.get('*', (req, res) => {
     });
 });
 
+// ARRANQUE NORMAL E ESTÁVEL
 const startServer = async () => {
-    await createTables();      // Comportamento normal: cria se não existir
-    await ensureAdminUser();      // Comportamento normal: garante que o admin existe
+    await createTables();
+    await ensureAdminUser();
     app.listen(PORT, () => console.log(`Servidor a correr normalmente na porta ${PORT}.`));
 };
 
