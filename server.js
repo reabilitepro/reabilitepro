@@ -21,6 +21,36 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
+// Função para resetar a senha do admin
+const resetAdminPassword = async () => {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const newAdminPassword = 'admin123'; // A senha que queremos definir
+
+    if (!adminEmail) {
+        console.log('Variável ADMIN_EMAIL não definida, pulando o reset de senha do admin.');
+        return;
+    }
+
+    try {
+        const client = await pool.connect();
+        // Verifica se o usuário admin existe
+        const userCheck = await client.query('SELECT * FROM professionals WHERE email = $1', [adminEmail]);
+        if (userCheck.rows.length > 0) {
+            // Criptografa a nova senha
+            const hashedNewPassword = await bcrypt.hash(newAdminPassword, 10);
+            // Atualiza a senha no banco de dados
+            await client.query('UPDATE professionals SET password = $1 WHERE email = $2', [hashedNewPassword, adminEmail]);
+            console.log(`Senha do administrador (${adminEmail}) foi resetada com sucesso.`);
+        } else {
+            console.log(`Usuário administrador (${adminEmail}) não encontrado no banco de dados. Nenhum reset de senha foi feito.`);
+        }
+        client.release();
+    } catch (error) {
+        console.error('Erro ao tentar resetar a senha do administrador:', error);
+    }
+};
+
+
 const createTables = async () => {
     const client = await pool.connect();
     try {
@@ -245,6 +275,7 @@ app.get('*', (req, res) => {
 
 const startServer = async () => {
     await createTables();
+    await resetAdminPassword(); // <-- Adicionado o reset da senha do admin
     app.listen(PORT, () => console.log(`Servidor a correr na porta ${PORT}`));
 };
 
