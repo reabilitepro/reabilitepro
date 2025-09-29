@@ -44,14 +44,14 @@ const ensureAdminUser = async () => {
                 'UPDATE professionals SET password = $1, registrationstatus = $2 WHERE email = $3',
                 [hashedPassword, 'Aprovado', adminEmail]
             );
-            console.log(`Usuário administrador (${adminEmail}) existente teve a senha atualizada e status garantido como 'Aprovado'.`);
+            console.log(`Usuário administrador (${adminEmail}) existente teve a senha atualizada e status garantido como \'Aprovado\'.`);
         } else {
             // Admin NÃO existe, então CRIA o usuário do zero
             await client.query(
                 'INSERT INTO professionals (fullname, email, password, profession, registrationnumber, registrationstatus) VALUES ($1, $2, $3, $4, $5, $6)',
                 [adminFullName, adminEmail, hashedPassword, adminProfession, 'N/A', 'Aprovado']
             );
-            console.log(`Usuário administrador (${adminEmail}) foi criado com sucesso com status 'Aprovado'.`);
+            console.log(`Usuário administrador (${adminEmail}) foi criado com sucesso com status \'Aprovado\'.`);
         }
     } catch (error) {
         console.error('Erro crítico ao garantir a existência do usuário administrador:', error);
@@ -270,9 +270,53 @@ app.get('/api/patient/dashboard', authenticateToken, async (req, res) => {
     }
 });
 
-// --- ROTAS DE ADMIN ---
-app.get('/api/admin/data', authenticateToken, (req, res) => { /* ... */ });
-app.put('/api/admin/professionals/:id', authenticateToken, (req, res) => { /* ... */ });
+// --- NOVAS ROTAS DE ADMIN ---
+app.get('/api/admin/dashboard-data', authenticateToken, async (req, res) => {
+    if (req.user.type !== 'admin') return res.status(403).json({ message: "Acesso negado." });
+
+    try {
+        // Busca todos os profissionais, exceto o próprio admin
+        const professionalsResult = await pool.query(
+            'SELECT id, fullname, email, profession, registrationnumber, registrationstatus FROM professionals WHERE email != $1 ORDER BY created_at DESC',
+            [process.env.ADMIN_EMAIL]
+        );
+        
+        // Busca todos os pacientes
+        const patientsResult = await pool.query(
+            'SELECT id, name, email, phone, professional_id FROM patients ORDER BY created_at DESC'
+        );
+
+        res.json({
+            professionals: professionalsResult.rows,
+            patients: patientsResult.rows
+        });
+
+    } catch (error) {
+        console.error("Erro ao carregar dados do painel de administração:", error);
+        res.status(500).json({ message: 'Não foi possível carregar os dados do painel.' });
+    }
+});
+
+app.put('/api/admin/professionals/:id/approve', authenticateToken, async (req, res) => {
+    if (req.user.type !== 'admin') return res.status(403).json({ message: "Acesso negado." });
+
+    const { id } = req.params;
+    try {
+        const result = await pool.query(
+            'UPDATE professionals SET registrationstatus = $1 WHERE id = $2 RETURNING id',
+            ['Aprovado', id]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Profissional não encontrado.' });
+        }
+
+        res.json({ message: 'Profissional aprovado com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao aprovar profissional:', error);
+        res.status(500).json({ message: 'Erro interno ao aprovar profissional.' });
+    }
+});
 
 app.get('*', (req, res) => {
     const filePath = path.join(__dirname, 'public', req.path.endsWith('.html') ? req.path : `${req.path}.html`);
@@ -285,7 +329,9 @@ app.get('*', (req, res) => {
 
 const startServer = async () => {
     await createTables();
-    await ensureAdminUser(); // <-- Lógica à prova de falhas para garantir o admin
+    // Não é mais necessário garantir o admin a cada inicialização se já estiver estável.
+    // No entanto, manteremos por enquanto como uma salvaguarda.
+    await ensureAdminUser(); 
     app.listen(PORT, () => console.log(`Servidor a correr na porta ${PORT}`));
 };
 
