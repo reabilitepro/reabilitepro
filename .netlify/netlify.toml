@@ -1,0 +1,30 @@
+functionsDirectory = "/home/user/reabilite-pro/netlify/functions"
+functionsDirectoryOrigin = "config-v1"
+plugins = []
+headers = []
+redirects = []
+
+[build]
+publish = "/home/user/reabilite-pro/public"
+publishOrigin = "config"
+commandOrigin = "ui"
+functions = "/home/user/reabilite-pro/netlify/functions"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
+
+[functions]
+
+[functions."*"]
+included_files = ["db/**"]

@@ -1,13 +1,26 @@
-const CACHE_NAME = 'reabilite-pro-cache-v2'; // Updated cache version
+const CACHE_NAME = 'reabilite-pro-cache-v3'; // Incremented cache version
 const urlsToCache = [
   '/',
   '/index.html',
-  '/contato.html',
-  '/login.html',
-  '/admin.html',
   '/style.css',
-  '/script.js',
+  '/manifest.json',
+  '/admin.html',
   '/admin.js',
+  '/anamnesis.html',
+  '/anamnesis.js',
+  '/app.js',
+  '/patient-dashboard.html',
+  '/patient-dashboard.js',
+  '/patient-details.html',
+  '/patient-details.js',
+  '/patient-login.js',
+  '/patient-registration.html',
+  '/patient-registration.js',
+  '/professional-dashboard.html',
+  '/professional-dashboard.js',
+  '/professional-login.js',
+  '/professional-registration.html',
+  '/professional-registration.js',
   'https://i.imgur.com/LN825NZ.png' 
 ];
 
@@ -22,39 +35,33 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // For API calls, use a Network First strategy
   if (event.request.url.includes('/api/')) {
     event.respondWith(
       caches.open(CACHE_NAME).then(cache => {
         return fetch(event.request)
           .then(response => {
-            // If the network request is successful, cache the new response
-            cache.put(event.request, response.clone());
+            if(response.ok) { // Only cache successful responses
+              cache.put(event.request, response.clone());
+            }
             return response;
           })
           .catch(() => {
-            // If the network request fails, try to return the cached response
             return caches.match(event.request);
           });
       })
     );
-    return; // End execution for API calls
+    return;
   }
 
-  // For all other requests (static assets), use a Cache First strategy
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        if (response) {
-          return response; // Return from cache if available
-        }
-        return fetch(event.request); // Otherwise, fetch from network
+        return response || fetch(event.request);
       })
   );
 });
 
 self.addEventListener('activate', event => {
-  // Delete old caches
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
