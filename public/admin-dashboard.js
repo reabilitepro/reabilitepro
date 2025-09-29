@@ -1,96 +1,67 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const loginContainer = document.getElementById('login-container');
-    const dashboardContainer = document.getElementById('admin-dashboard');
-    const loginForm = document.getElementById('admin-login-form');
-    const logoutButton = document.getElementById('logout-button');
     const professionalsTbody = document.querySelector('#professionals-table tbody');
     const patientsTbody = document.querySelector('#patients-table tbody');
+    const logoutButton = document.getElementById('logout-button');
 
-    function showDashboard() {
-        loginContainer.style.display = 'none';
-        dashboardContainer.style.display = 'block';
-        loadAdminData();
+    const token = localStorage.getItem('accessToken'); // PADRONIZADO
+
+    if (!token) {
+        window.location.href = 'admin.html';
+        return;
     }
 
-    function showLogin() {
+    logoutButton.addEventListener('click', () => {
         localStorage.removeItem('accessToken'); // PADRONIZADO
-        loginContainer.style.display = 'block';
-        dashboardContainer.style.display = 'none';
-        if (professionalsTbody) professionalsTbody.innerHTML = '';
-        if (patientsTbody) patientsTbody.innerHTML = '';
-    }
-
-    loginForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const email = document.getElementById('admin-email').value;
-        const password = document.getElementById('admin-password').value;
-
-        try {
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, userType: 'admin' })
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Credenciais inválidas.');
-
-            if (data.userType === 'admin') {
-                localStorage.setItem('accessToken', data.accessToken); // PADRONIZADO
-                showDashboard();
-            } else {
-                throw new Error('Acesso de administrador negado.');
-            }
-        } catch (error) {
-            alert('Erro no login: ' + error.message);
-        }
+        window.location.href = 'admin.html';
     });
 
-    if (logoutButton) {
-        logoutButton.addEventListener('click', showLogin);
-    }
-
-    async function loadAdminData() {
-        const token = localStorage.getItem('accessToken'); // PADRONIZADO
-        if (!token) {
-            showLogin();
-            return;
-        }
-
+    async function loadData() {
         try {
-            const response = await fetch('/api/admin/data', {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await fetch('/api/admin/data', { // ROTA CORRIGIDA
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
-            
+
             const data = await response.json();
+
             if (!response.ok) {
-                throw new Error(data.message || 'Falha ao carregar dados.');
+                throw new Error(data.message || 'Não foi possível carregar os dados do painel.');
             }
 
             populateTable(professionalsTbody, data.professionals, createProfessionalRow);
             populateTable(patientsTbody, data.patients, createPatientRow);
+
         } catch (error) {
             alert(error.message);
-            showLogin();
+            // Se houver erro (ex: token expirado), redireciona para o login
+            localStorage.removeItem('accessToken'); // PADRONIZADO
+            window.location.href = 'admin.html';
         }
     }
-    
+
     async function updateProfessionalStatus(id, newStatus) {
-        const token = localStorage.getItem('accessToken'); // PADRONIZADO
         try {
-            const response = await fetch(`/api/admin/professionals/${id}`,
-             {
+            const response = await fetch(`/api/admin/professionals/${id}`, { // ROTA CORRIGIDA
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ registrationStatus: newStatus })
             });
+
             const data = await response.json();
+
             if (!response.ok) {
-                throw new Error(data.message || 'Falha ao atualizar.');
+                throw new Error(data.message || 'Falha ao atualizar o status.');
             }
-            alert('Status atualizado com sucesso!');
-            loadAdminData();
+
+            alert('Status do profissional atualizado com sucesso!');
+            loadData(); // Recarrega os dados para refletir a mudança
+
         } catch (error) {
-            alert('Erro ao atualizar status: ' + error.message);
+            alert('Erro: ' + error.message);
         }
     }
 
@@ -125,10 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="save-status-btn">Salvar</button>
             </td>
         `;
+
         row.querySelector('.save-status-btn').addEventListener('click', () => {
             const newStatus = row.querySelector('.status-select').value;
             updateProfessionalStatus(prof.id, newStatus);
         });
+
         return row;
     }
 
@@ -144,9 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return row;
     }
 
-    if (localStorage.getItem('accessToken')) { // PADRONIZADO
-        showDashboard();
-    } else {
-        showLogin();
-    }
+    // Carrega os dados assim que a página é aberta
+    loadData();
 });
