@@ -6,19 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const professionalsTbody = document.querySelector('#professionals-table tbody');
     const patientsTbody = document.querySelector('#patients-table tbody');
 
-    // --- Funções de Gestão de Estado e Visibilidade ---
-
     function showDashboard(pushState = false) {
         loginContainer.style.display = 'none';
         dashboardContainer.style.display = 'block';
-
-        if (pushState) {
-            history.pushState({ loggedIn: true }, 'Admin Dashboard', '/admin');
-        }
-
-        const adminToken = localStorage.getItem('adminToken');
-        if (adminToken) {
-            loadAdminData(adminToken);
+        if (pushState) history.pushState({ loggedIn: true }, 'Admin Dashboard', '/admin');
+        const token = localStorage.getItem('adminToken');
+        if (token) {
+            loadAdminData(token);
         } else {
             showLogin(true);
         }
@@ -30,19 +24,13 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboardContainer.style.display = 'none';
         if (professionalsTbody) professionalsTbody.innerHTML = '';
         if (patientsTbody) patientsTbody.innerHTML = '';
-
-        if (replaceState) {
-            history.replaceState({ loggedIn: false }, 'Admin Login', '/admin');
-        }
+        if (replaceState) history.replaceState({ loggedIn: false }, 'Admin Login', '/admin');
     }
-
-    // --- Lógica Principal e Eventos ---
 
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const email = document.getElementById('admin-email').value;
         const password = document.getElementById('admin-password').value;
-
         try {
             const response = await fetch('/api/login', {
                 method: 'POST',
@@ -51,9 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Credenciais inválidas.');
-
             if (data.userType === 'admin') {
-                localStorage.setItem('adminToken', data.accessToken);
+                localStorage.setItem('adminToken', data.adminToken);
                 showDashboard(true);
             } else {
                 throw new Error('Acesso de administrador negado.');
@@ -78,11 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (professionalsTbody) {
         professionalsTbody.addEventListener('click', (event) => {
             if (event.target.classList.contains('save-status-btn')) {
-                const adminToken = localStorage.getItem('adminToken');
+                const token = localStorage.getItem('adminToken');
                 const row = event.target.closest('tr');
                 const id = row.dataset.id;
                 const newStatus = row.querySelector('.status-select').value;
-                updateProfessionalStatus(id, newStatus, adminToken, () => loadAdminData(adminToken));
+                updateProfessionalStatus(id, newStatus, token, () => loadAdminData(token));
             }
         });
     }
@@ -93,11 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) {
-                if (response.status === 401 || response.status === 403) {
-                    throw new Error('Sessão inválida ou expirada. Por favor, faça login novamente.');
-                }
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'Não foi possível carregar os dados do painel.');
+                throw new Error(errorData.message || 'Não foi possível carregar os dados.');
             }
             const { professionals, patients } = await response.json();
             populateTable(professionalsTbody, professionals, createProfessionalRow);
@@ -163,16 +147,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function createPatientRow(patient) {
         const row = document.createElement('tr');
         row.dataset.id = patient.id;
+        // LINHA MODIFICADA PARA DIAGNÓSTICO
         row.innerHTML = `
             <td>${patient.id}</td>
             <td>${patient.name || 'N/A'}</td>
             <td>${patient.phone || 'N/A'}</td>
-            <td>${patient.professional_name || 'Nenhum'}</td>
+            <td>${patient.professional_id || 'Nenhum'}</td> 
         `;
         return row;
     }
 
-    // --- Ponto de Entrada ---
     if (localStorage.getItem('adminToken')) {
         showDashboard(true);
     } else {
