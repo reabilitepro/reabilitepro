@@ -1,47 +1,34 @@
-
-document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('patient-login-form');
+document.addEventListener('DOMContentLoaded', function () {
+    const loginForm = document.getElementById('login-form');
     const errorMessage = document.getElementById('error-message');
 
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        errorMessage.textContent = '';
-        errorMessage.style.display = 'none';
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
 
-        const email = document.getElementById('email-user').value;
-        const password = document.getElementById('password').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
 
-        if (!email || !password) {
-            errorMessage.textContent = 'Por favor, preencha todos os campos.';
-            errorMessage.style.display = 'block';
-            return;
-        }
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, userType: 'patient' }),
+                });
 
-        try {
-            const response = await fetch('/api/login', { // Corrigido para o endpoint unificado
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password })
-            });
+                const data = await response.json();
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Falha no login. Verifique suas credenciais.');
+                if (response.ok) {
+                    localStorage.setItem('accessToken', data.accessToken);
+                    window.location.href = '/patient-dashboard.html'; // Redireciona para o painel do paciente
+                } else {
+                    errorMessage.textContent = data.message || 'Erro desconhecido no login.';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Falha na comunicação com o servidor. Tente novamente.';
             }
-
-            if (data.accessToken && data.userType === 'patient') {
-                localStorage.setItem('accessToken', data.accessToken);
-                window.location.href = '/patient-dashboard.html';
-            } else {
-                throw new Error('Credenciais inválidas ou tipo de usuário incorreto.');
-            }
-
-        } catch (error) {
-            errorMessage.textContent = error.message;
-            errorMessage.style.display = 'block';
-        }
-    });
+        });
+    }
 });
