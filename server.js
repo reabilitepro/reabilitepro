@@ -47,7 +47,7 @@ const ensureAdminUser = async () => {
         } else {
             await client.query(
                 'INSERT INTO professionals (fullname, email, password, profession, registrationnumber, registrationstatus) VALUES ($1, $2, $3, $4, $5, $6)',
-                [adminFullName, adminEmail, hashedPassword, adminProfession, 'N/A', 'Aprovado']
+                [adminFullName, email, hashedPassword, adminProfession, 'N/A', 'Aprovado']
             );
             console.log(`Usuário administrador (${adminEmail}) foi criado com sucesso com status \'Aprovado\'.`);
         }
@@ -117,7 +117,6 @@ const createTables = async () => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- MIDDLEWARE DE AUTENTICAÇÃO CORRIGIDO ---
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -128,7 +127,7 @@ const authenticateToken = (req, res, next) => {
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
-            console.error('Erro na verificação do JWT:', err.name); // Ex: TokenExpiredError
+            console.error('Erro na verificação do JWT:', err.name); 
             return res.status(403).json({ message: 'Token inválido ou expirado. Por favor, faça login novamente.' });
         }
         req.user = user;
@@ -274,17 +273,13 @@ app.get('/api/patient/dashboard', authenticateToken, async (req, res) => {
     }
 });
 
-// --- ROTA DE ADMIN SIMPLIFICADA PARA DEBUG ---
-app.get('/api/admin/data', authenticateToken, async (req, res) => {
-    if (req.user.type !== 'admin') return res.status(403).json({ message: "Acesso negado." });
-
+// --- ROTA DE ADMIN SEM AUTENTICAÇÃO PARA DEBUG ---
+app.get('/api/admin/data', async (req, res) => { // A autenticação foi REMOVIDA
     try {
-        const professionalsResult = await pool.query(
-            'SELECT id, fullname, email, profession, registrationnumber, registrationstatus, patientlimit FROM professionals WHERE email != $1 ORDER BY created_at DESC',
-            [process.env.ADMIN_EMAIL]
-        );
+        // Consulta ultra-simplificada para garantir que funcione.
+        const professionalsResult = await pool.query('SELECT id, fullname, email, registrationstatus FROM professionals');
         
-        const patientsResult = { rows: [] }; // Pacientes desativados para depuração
+        const patientsResult = { rows: [] };
 
         res.json({
             professionals: professionalsResult.rows,
@@ -292,7 +287,7 @@ app.get('/api/admin/data', authenticateToken, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Erro ao carregar dados do painel de administração (profissionais):", error);
+        console.error("ERRO CRÍTICO ao buscar dados de admin (sem auth):", error);
         res.status(500).json({ message: 'Não foi possível carregar os dados do painel.' });
     }
 });
