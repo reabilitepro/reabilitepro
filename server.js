@@ -20,7 +20,7 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// Função para criar tabelas se não existirem
+// Função normal para criar tabelas se não existirem
 const createTables = async () => {
     const client = await pool.connect();
     try {
@@ -36,7 +36,7 @@ const createTables = async () => {
     }
 };
 
-// Função para garantir a existência do usuário admin
+// Função normal para garantir a existência do usuário admin
 const ensureAdminUser = async () => {
     const client = await pool.connect();
     try {
@@ -106,12 +106,7 @@ app.get('/api/admin/data', authenticateToken, async (req, res) => {
     const client = await pool.connect();
     try {
         const professionalsResult = await client.query('SELECT id, fullname, email, registrationstatus, patientlimit FROM professionals WHERE email != $1 ORDER BY created_at DESC', [process.env.ADMIN_EMAIL]);
-        const patientsResult = await client.query(`
-            SELECT p.id, p.name, p.phone, prof.fullname as professional_name
-            FROM patients p
-            LEFT JOIN professionals prof ON p.professional_id = prof.id
-            ORDER BY p.created_at DESC
-        `);
+        const patientsResult = await client.query(`SELECT p.id, p.name, p.phone, prof.fullname as professional_name FROM patients p LEFT JOIN professionals prof ON p.professional_id = prof.id ORDER BY p.created_at DESC`);
         res.json({ professionals: professionalsResult.rows, patients: patientsResult.rows });
     } catch (error) {
         console.error("Erro ao carregar dados do admin:", error);
@@ -148,9 +143,9 @@ app.get('*', (req, res) => {
 });
 
 const startServer = async () => {
-    await createTables();
-    await ensureAdminUser();
-    app.listen(PORT, () => console.log(`Servidor funcional a correr na porta ${PORT}.`));
+    await createTables();      // Comportamento normal: cria se não existir
+    await ensureAdminUser();      // Comportamento normal: garante que o admin existe
+    app.listen(PORT, () => console.log(`Servidor a correr normalmente na porta ${PORT}.`));
 };
 
 startServer();
