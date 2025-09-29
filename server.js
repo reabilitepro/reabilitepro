@@ -117,12 +117,20 @@ const createTables = async () => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// --- MIDDLEWARE DE AUTENTICAÇÃO CORRIGIDO ---
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    if (token == null) return res.sendStatus(401);
+
+    if (token == null) {
+        return res.status(401).json({ message: 'Token de autenticação não fornecido.' });
+    }
+
     jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.sendStatus(403);
+        if (err) {
+            console.error('Erro na verificação do JWT:', err.name); // Ex: TokenExpiredError
+            return res.status(403).json({ message: 'Token inválido ou expirado. Por favor, faça login novamente.' });
+        }
         req.user = user;
         next();
     });
@@ -266,23 +274,21 @@ app.get('/api/patient/dashboard', authenticateToken, async (req, res) => {
     }
 });
 
-// --- ROTA DE ADMIN SIMPLIFICADA ---
+// --- ROTA DE ADMIN SIMPLIFICADA PARA DEBUG ---
 app.get('/api/admin/data', authenticateToken, async (req, res) => {
     if (req.user.type !== 'admin') return res.status(403).json({ message: "Acesso negado." });
 
     try {
-        // PASSO 1: Buscar apenas os profissionais para isolar o erro.
         const professionalsResult = await pool.query(
             'SELECT id, fullname, email, profession, registrationnumber, registrationstatus, patientlimit FROM professionals WHERE email != $1 ORDER BY created_at DESC',
             [process.env.ADMIN_EMAIL]
         );
         
-        // A busca por pacientes foi temporariamente desativada para depuração.
-        const patientsResult = { rows: [] };
+        const patientsResult = { rows: [] }; // Pacientes desativados para depuração
 
         res.json({
             professionals: professionalsResult.rows,
-            patients: patientsResult.rows // Retorna uma lista vazia de pacientes
+            patients: patientsResult.rows
         });
 
     } catch (error) {
