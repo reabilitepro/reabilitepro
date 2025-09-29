@@ -1,9 +1,10 @@
-const CACHE_NAME = 'reabilite-pro-cache-v3'; // Incremented cache version
+const CACHE_NAME = 'reabilite-pro-cache-v4'; // Incremented cache version
 const urlsToCache = [
   '/',
   '/index.html',
   '/style.css',
   '/manifest.json',
+  '/404.html', // Added 404 page
   '/admin.html',
   '/admin.js',
   '/anamnesis.html',
