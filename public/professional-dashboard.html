@@ -7,7 +7,7 @@
     <link rel="manifest" href="/manifest.json">
     <title>Painel do Profissional - Reabilite Pro</title>
     <link rel="icon" href="https://i.imgur.com/LN825NZ.png" type="image/png">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <header>
@@ -59,7 +59,8 @@
         </div>
     </main>
 
-    <script src="/professional-dashboard.js?v=1.4"></script> <!-- Cache-busting version increment -->
+    <script src="/js/auth/login-professional.js?v=1.4"></script>
+    <script src="/js/dashboards/dashboard-professional.js?v=1.4"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
